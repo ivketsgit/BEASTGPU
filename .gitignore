@@ -1,0 +1,17 @@
+.vscode
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+*.mem
+*.jld2
+docs/build/
+docs/site/
+temp/
+dev/
+profile/
+/envs/
+/Manifest.toml
+/test/Manifest.toml
+/docs/Manifest.toml
+/data/
+/cached_results
