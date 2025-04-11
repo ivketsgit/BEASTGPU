@@ -1,0 +1,10 @@
+[deps]
+Atomix = "a9b6321e-bd34-4604-b9c9-b65b8de01458"
+BEAST = "bb4162c7-ba94-5a20-af32-d8ec4428bdd1"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+CompScienceMeshes = "3e66a162-7b8c-5da0-b8f8-124ecd2c3ae1"
+KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
+SauterSchwabQuadrature = "535c7bfe-2023-5c1d-b712-654ef9d93a38"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"

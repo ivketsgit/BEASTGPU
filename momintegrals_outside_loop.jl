@@ -256,6 +256,8 @@ function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCust
 
     time_2 = @elapsed begin
         qps, store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = move(backend, qps), move(backend, store_index), move(backend, ichart1_vert), move(backend, ichart2_vert), move(backend, ichart1_tan), move(backend, ichart2_tan)
+
+        
         sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(result, qps, 
             test_vert, trail_vert, test_tan, trail_tan, test_vol, trail_vol, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, store_index, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 

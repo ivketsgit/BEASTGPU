@@ -368,7 +368,6 @@ function assemblechunk_body_gpu!(biop,
         test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix = load_data(backend, type, test_elements_length, test_elements)
         trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix = load_data(backend, type, trial_elements_length, trial_elements)
 
-
         SauterSchwabQuadratureCommonVertexCustomGpuDataInstance_ = SauterSchwabQuadratureCommonVertexCustomGpuDataInstance()
         SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance_ = SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance()
         SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_ = SauterSchwabQuadratureCommonFaceCustomGpuDataInstance()
@@ -462,7 +461,7 @@ function assemblechunk_body_gpu!(biop,
         end
         @show time_double_forloop
 
-        sauterschwab_task_1 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonVertex, 
+        sauterschwab_task_1 =  sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonVertex, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
             biop, SauterSchwabQuadratureCommonVertexCustomGpuDataInstance_, writeBackStrategy, time_table, 2,
             test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
@@ -473,7 +472,7 @@ function assemblechunk_body_gpu!(biop,
 
 
         # result_3 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonEdge)
-        sauterschwab_task_2 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonEdge, 
+        sauterschwab_task_2 =  sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonEdge, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
             biop, SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance_, writeBackStrategy, time_table, 3,
             test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
@@ -483,16 +482,16 @@ function assemblechunk_body_gpu!(biop,
 
 
         # result_4 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonFace)
-        sauterschwab_task_3 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonFace, 
+        sauterschwab_task_3 =  sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonFace, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
             biop, SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_, writeBackStrategy, time_table, 4,
             test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
             trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
             store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonFace, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
             
-        wait(sauterschwab_task_1)
-        wait(sauterschwab_task_2)
-        wait(sauterschwab_task_3)
+        # wait(sauterschwab_task_1)
+        # wait(sauterschwab_task_2)
+        # wait(sauterschwab_task_3)
     end
     
 
