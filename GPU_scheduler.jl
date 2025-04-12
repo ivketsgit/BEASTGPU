@@ -29,8 +29,7 @@ function producer(ch_data::Channel, backend,
 
         store, length_return_matrix, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, blocks, lock
     )
-    # results = KernelAbstractions.allocate(backend, ComplexF64, (size_submatrix, size_submatrix, 9))
-    results = KernelAbstractions.zeros(backend, ComplexF64, (size_submatrix, size_submatrix, 9))
+    results = KernelAbstractions.allocate(backend, ComplexF64, (size_submatrix, size_submatrix, 9))
     result_cpu = Array{ComplexF64}(undef, size_submatrix, size_submatrix, 9)
     for item in ch_data
         i, j, ndrange, curr_offsets = item
@@ -48,11 +47,9 @@ function producer(ch_data::Channel, backend,
 
         # yield()
         KernelAbstractions.synchronize(backend)
+        KernelAbstractions.copyto!(CPU(), result_cpu, results)
         
         # result_cpu = Array(results)
-        KernelAbstractions.copyto!(CPU(), result_cpu, results)
-
-
         # write_to_compact_matrix(result_cpu, store, length_return_matrix, ndrange, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
         linear_index = (j - 1) * blocks + i
         # if !(j == 1 && i == 1)

@@ -8,8 +8,15 @@ abstract type GpuWriteBackFalse <: GpuWriteBack end
 struct GpuWriteBackTrueInstance <: GpuWriteBackTrue end
 struct GpuWriteBackFalseInstance <: GpuWriteBackFalse end
 
+const gpu_results_cache = IdDict()
 function create_results_matrix_gpu(backend, length_return_matrix, size_qrule, T::GpuWriteBackTrue, any)
-    return KernelAbstractions.zeros(backend, Float64, 2, length_return_matrix, length_return_matrix)
+    if haskey(gpu_results_cache, 1)
+        return gpu_results_cache[1]
+    else
+        gpu_results_cache[1] = KernelAbstractions.zeros(backend, Float64, 2, length_return_matrix, length_return_matrix)
+        return gpu_results_cache[1]
+    end
+    # return KernelAbstractions.zeros(backend, Float64, 2, length_return_matrix, length_return_matrix)
 end
 
 function create_results_matrix_gpu(backend, length_return_matrix, size_qrule, T::GpuWriteBackFalse, T2::doubleQuadRuleGpuStrategy)
