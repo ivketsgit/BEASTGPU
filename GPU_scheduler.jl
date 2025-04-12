@@ -29,7 +29,9 @@ function producer(ch_data::Channel, backend,
 
         store, length_return_matrix, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, blocks, lock
     )
-    results = KernelAbstractions.allocate(backend, ComplexF64, (size_submatrix, size_submatrix, 9))
+    # results = KernelAbstractions.allocate(backend, ComplexF64, (size_submatrix, size_submatrix, 9))
+    results = KernelAbstractions.zeros(backend, ComplexF64, (size_submatrix, size_submatrix, 9))
+    result_cpu = Array{ComplexF64}(undef, size_submatrix, size_submatrix, 9)
     for item in ch_data
         i, j, ndrange, curr_offsets = item
         doubleQuadRule_generic_3d_gpu_outside_loop!(results,
@@ -47,7 +49,10 @@ function producer(ch_data::Channel, backend,
         # yield()
         KernelAbstractions.synchronize(backend)
         
-        result_cpu = Array(results)
+        # result_cpu = Array(results)
+        KernelAbstractions.copyto!(CPU(), result_cpu, results)
+
+
         # write_to_compact_matrix(result_cpu, store, length_return_matrix, ndrange, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
         linear_index = (j - 1) * blocks + i
         # if !(j == 1 && i == 1)
@@ -112,7 +117,7 @@ function schedule_kernel!(
     # time_table[1,1] += time
 
 
-    case = 3
+    case = 1
     if case == 1 
         result_1 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate)
         doubleQuadRule_generic_3d_gpu_outside_loop!(result_1,
@@ -128,9 +133,9 @@ function schedule_kernel!(
         )
         KernelAbstractions.synchronize(backend)
 
-        time_to_store += @elapsed begin
+        # time_to_store += @elapsed begin
             write_to_compact_matrix(result_1, store, length_return_matrix, size_qrule, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
-        end
+        # end
     elseif case == 2
         GPU_budget = 1 * GiB
         amount_of_producers = 8#Threads.nthreads()
@@ -192,7 +197,8 @@ function schedule_kernel!(
         
     elseif case == 3
         GPU_budget = 1 * GiB
-        amount_of_producers = Threads.nthreads() - 3
+        amount_of_producers = Threads.nthreads()
+        @show amount_of_producers
         amount_of_consumers = 4
 
         lock = ReentrantLock()

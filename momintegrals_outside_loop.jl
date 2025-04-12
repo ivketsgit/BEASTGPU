@@ -265,11 +265,6 @@ function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCust
         KernelAbstractions.synchronize(backend)
     end
 
-    time_to_store_ = @elapsed begin
-        write_to_compact_matrix(result, store, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadraturetype, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
-    end
-    Threads.atomic_add!(time_to_store, time_to_store_)
-
     Threads.atomic_add!(time_table[1,index], time_1)
     Threads.atomic_add!(time_table[2,index], time_2)
     # time_table[1,index] += time_1

@@ -537,7 +537,7 @@ end
         @unroll for I in 1:3
             @unroll for J in 1:4
                 # @fastmath
-                @fastmath R = sqrt( (womps_cart[K, I, 1] - wimps_cart[L, J, 1])^2 + 
+                R = sqrt( (womps_cart[K, I, 1] - wimps_cart[L, J, 1])^2 + 
                                     (womps_cart[K, I, 2] - wimps_cart[L, J, 2])^2 + 
                                     (womps_cart[K, I, 3] - wimps_cart[L, J, 3])^2 )
                 j_αG = calc_j_αG(α, womps_weights[K, I], wimps_weights[L, J], R, γ, T, should_calc, K, L)

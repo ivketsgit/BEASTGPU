@@ -362,7 +362,7 @@ function assemblechunk_body_gpu!(biop,
         SauterSchwabQuadratureCommonFace = SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonFaceCustomGpuData}()
         
         InstancedoubleQuadRuleGpuStrategyShouldCalculate = doubleQuadRuleGpuStrategyShouldCalculateInstance()
-        writeBackStrategy = GpuWriteBackFalseInstance()
+        writeBackStrategy = GpuWriteBackTrueInstance()
         
         
         test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix = load_data(backend, type, test_elements_length, test_elements)
@@ -461,52 +461,70 @@ function assemblechunk_body_gpu!(biop,
         end
         @show time_double_forloop
 
-        sauterschwab_task_1 =  sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonVertex, 
-            test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
-            biop, SauterSchwabQuadratureCommonVertexCustomGpuDataInstance_, writeBackStrategy, time_table, 2,
-            test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
-            trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
-            store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonVertex, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
+        time_sauterschwab = @elapsed begin
+            result = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonFace)
 
-        # unsafe_free!(result_2)
+            sauterschwab_task_1 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(result, SauterSchwabQuadratureCommonVertex, 
+                test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
+                biop, SauterSchwabQuadratureCommonVertexCustomGpuDataInstance_, writeBackStrategy, time_table, 2,
+                test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
+                trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
+                store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonVertex, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
 
-
-        # result_3 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonEdge)
-        sauterschwab_task_2 =  sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonEdge, 
-            test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
-            biop, SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance_, writeBackStrategy, time_table, 3,
-            test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
-            trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
-            store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonEdge, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
-        # unsafe_free!(result_3)
+            # unsafe_free!(result_2)
 
 
-        # result_4 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonFace)
-        sauterschwab_task_3 =  sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonFace, 
-            test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
-            biop, SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_, writeBackStrategy, time_table, 4,
-            test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
-            trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
-            store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonFace, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
+            # result_3 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonEdge)
+            sauterschwab_task_2 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(result, SauterSchwabQuadratureCommonEdge, 
+                test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
+                biop, SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance_, writeBackStrategy, time_table, 3,
+                test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
+                trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
+                store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonEdge, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
+            # unsafe_free!(result_3)
+
+
+            # result_4 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonFace)
+            sauterschwab_task_3 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(result, SauterSchwabQuadratureCommonFace, 
+                test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
+                biop, SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_, writeBackStrategy, time_table, 4,
+                test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
+                trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
+                store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonFace, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
+                
+            wait(sauterschwab_task_1)
+            wait(sauterschwab_task_2)
+            wait(sauterschwab_task_3)
             
-        # wait(sauterschwab_task_1)
-        # wait(sauterschwab_task_2)
-        # wait(sauterschwab_task_3)
+            time_to_store_ = @elapsed begin
+                write_to_compact_matrix(result, store, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonFace, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
+            end
+
+            Threads.atomic_add!(time_to_store, time_to_store_)
+
+            @show time_to_store
+        end
+        @show time_sauterschwab
     end
     
 
     # time_double_int = @elapsed begin
         # producers = []
         # amount_of_producers = Threads.nthreads()
-    sk = Threads.@spawn schedule_kernel!(
-        backend, 
-        length_return_matrix, size_qrule, elements_length_tuple,
-        writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate,
-        test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, test_assembly_cpu_indexes, trial_assembly_cpu_indexes,
-        biop, should_calc, qd, type, store,
-        time_table, time_to_store,
-        # producers
-    )
+    time_double_int = @elapsed begin
+        sk = Threads.@spawn schedule_kernel!(
+            backend, 
+            length_return_matrix, size_qrule, elements_length_tuple,
+            writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate,
+            test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, test_assembly_cpu_indexes, trial_assembly_cpu_indexes,
+            biop, should_calc, qd, type, store,
+            time_table, time_to_store,
+            # producers
+        )
+        
+        wait(sk)
+    end
+    @show time_double_int
     # end
 
     # Threads.atomic_add!(time_table[2,1], time_double_int)
@@ -525,7 +543,6 @@ function assemblechunk_body_gpu!(biop,
     
 
 
-    wait(sk)
 
     
     # time_to_store += @elapsed begin
