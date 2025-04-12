@@ -114,8 +114,8 @@ function schedule_kernel!(
     # time_table[1,1] += time
 
 
-    case = 1
-    if case == 1 
+    case = 3
+    if typeof(writeBackStrategy) == GpuWriteBackTrueInstance
         result_1 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate)
         doubleQuadRule_generic_3d_gpu_outside_loop!(result_1,
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values,
@@ -131,7 +131,7 @@ function schedule_kernel!(
         KernelAbstractions.synchronize(backend)
 
         # time_to_store += @elapsed begin
-            write_to_compact_matrix(result_1, store, length_return_matrix, size_qrule, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
+            # write_to_compact_matrix(result_1, store, length_return_matrix, size_qrule, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
         # end
     elseif case == 2
         GPU_budget = 1 * GiB

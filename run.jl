@@ -7,6 +7,7 @@ using Serialization
 
 
 include("assamble_gpu.jl")
+include("CustomDataStructs/GpuWriteBack.jl")
 include("utils/backend.jl")
 
 @kernel function warmup_gpu_kernel()
@@ -98,19 +99,20 @@ S = Helmholtz3D.singlelayer(wavenumber = 1.0)
 filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
 
 
-let time = @elapsed begin
-    # @show @which assemble(S,X,X)
-        M_ref = assemble(S,X,X)
-    end
-    # open(filename, "w") do io
-    #     serialize(io, M_ref)
-    # end
-    println("Elapsed time control: ", time)
-    println("")
-end
+# let time = @elapsed begin
+#     # @show @which assemble(S,X,X)
+#         M_ref = assemble(S,X,X)
+#     end
+#     # open(filename, "w") do io
+#     #     serialize(io, M_ref)
+#     # end
+#     println("Elapsed time control: ", time)
+#     println("")
+# end
 
 let time = @elapsed begin
-        M = assemble_gpu(S,X,X)
+        writeBackStrategy = GpuWriteBackTrueInstance()
+        M = assemble_gpu(S,X,X, writeBackStrategy)
     end 
     println("Elapsed time: ", time)
     println("")
@@ -118,9 +120,9 @@ end
 # @show M_ref
 # @show M
 
-# M_ref = open(filename, "r") do io
-#     deserialize(io)
-# end
+M_ref = open(filename, "r") do io
+    deserialize(io)
+end
 
 error_matrix = abs.(M_ref .- M)
 println("")
