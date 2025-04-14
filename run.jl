@@ -7,6 +7,7 @@ using Serialization
 
 
 include("assamble_gpu.jl")
+include("CustomDataStructs/GpuWriteBack.jl")
 include("utils/backend.jl")
 
 # @kernel function warmup_gpu_kernel()
@@ -126,9 +127,9 @@ end
 # @show M_ref
 # @show M
 
-# M_ref = open(filename, "r") do io
-#     deserialize(io)
-# end
+M_ref = open(filename, "r") do io
+    deserialize(io)
+end
 
 println("")
 

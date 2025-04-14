@@ -7,7 +7,6 @@ using Serialization
 
 include("CustomDataStructs/SauterSchwabQuadratureDataStruct.jl")
 include("CustomDataStructs/doubleQuadRuleGpuStrategy.jl")
-include("CustomDataStructs/GpuWriteBack.jl")
 
 include("GPU_scheduler.jl")
 

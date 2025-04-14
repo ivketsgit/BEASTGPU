@@ -197,7 +197,8 @@ function schedule_kernel!(
         
     elseif case == 3
         GPU_budget = 1 * GiB
-        amount_of_producers = Threads.nthreads() - 3
+        amount_of_producers = Threads.nthreads()
+        @show amount_of_producers
         amount_of_consumers = 4
 
         lock = ReentrantLock()
