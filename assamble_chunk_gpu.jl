@@ -47,7 +47,7 @@ struct HH3DSingleLayerFDBIO{T,K} <: Helmholtz3DOp{T,K}
     gamma::K
 end
 
-function assemblechunk_gpu!(biop::BEAST.IntegralOperator, tfs::BEAST.Space, bfs::BEAST.Space, store;
+function assemblechunk_gpu!(biop::BEAST.IntegralOperator, tfs::BEAST.Space, bfs::BEAST.Space, writeBackStrategy::GpuWriteBack, amount_of_gpus, store;
     quadstrat=BEAST.defaultquadstrat(biop, tfs, bfs))
 
     tr = BEAST.assemblydata(tfs); tr == nothing && return
@@ -61,9 +61,6 @@ function assemblechunk_gpu!(biop::BEAST.IntegralOperator, tfs::BEAST.Space, bfs:
 
     tdom = domain(chart(tgeo, first(tgeo)))
     bdom = domain(chart(bgeo, first(bgeo)))
-
-    # @show typeof(refspace(tfs)), typeof(tdom)
-    # @show @which numfunctions(refspace(tfs), tdom)
 
     tshapes = refspace(tfs); num_tshapes = numfunctions(tshapes, tdom)
     bshapes = refspace(bfs); num_bshapes = numfunctions(bshapes, bdom)
@@ -81,7 +78,7 @@ function assemblechunk_gpu!(biop::BEAST.IntegralOperator, tfs::BEAST.Space, bfs:
     assemblechunk_body_gpu!(biop,
         tfs, test_elements, tad, tcells,
         bfs, bsis_elements, bad, bcells,
-        qd, zlocal, store; quadstrat=qs)
+        qd, zlocal, writeBackStrategy, amount_of_gpus, store; quadstrat=qs)
 end
 
 function validate_and_extract(data, size_qrule)
@@ -186,7 +183,7 @@ end
 function load_data(backend, type, size_qrule, test_elements)
     elements_vertices_matrix = Array{type}(undef, size_qrule, 3, 3)
     elements_tangents_matrix = Array{type}(undef, size_qrule, 3, 3)
-    elements_volume_matrix = Array{type}(undef, size_qrule, 3)
+    elements_volume_matrix = Array{type}(undef, size_qrule)
     for p in 1:size_qrule
         tcell = test_elements[p]
         for i in 1:3
@@ -197,9 +194,9 @@ function load_data(backend, type, size_qrule, test_elements)
         end
         elements_volume_matrix[p] = tcell.volume
     end
-    elements_vertices_matrix = move(backend,elements_vertices_matrix)
-    elements_tangents_matrix = move(backend,elements_tangents_matrix)
-    elements_volume_matrix = move(backend,elements_volume_matrix)
+    # elements_vertices_matrix = move(backend,elements_vertices_matrix)
+    # elements_tangents_matrix = move(backend,elements_tangents_matrix)
+    # elements_volume_matrix = move(backend,elements_volume_matrix)
 
     return elements_vertices_matrix, elements_tangents_matrix, elements_volume_matrix
 end
@@ -231,13 +228,12 @@ function choose_square_submatrix_shape(A::Int, target_size::Int)
 
     return Int(submatrix_size), Int(n_rows), Int(n_cols)
 end
-# @show choose_square_submatrix_shape(10^20, 10^20, 10^6)
 
 
 function assemblechunk_body_gpu!(biop,
     test_space, test_elements, test_assembly_data, test_cell_ptrs,
     trial_space, trial_elements, trial_assembly_data, trial_cell_ptrs,
-    qd, zlocal, store; quadstrat)
+    qd, zlocal, writeBackStrategy::GpuWriteBack, amount_of_gpus, store; quadstrat)
     type = Float64
 
     test_elements_length = length(test_elements)
@@ -298,9 +294,9 @@ function assemblechunk_body_gpu!(biop,
     @show GPU_budget
     @show calc_budget
 
-    if GPU_budget >= calc_budget && false  
-        # range_test = 1:1
-        # range_trail = 1:1
+    if GPU_budget >= calc_budget
+        range_test = 1:amount_of_gpus
+        range_trail = 1:1
     else
         # @show sizeof(test_elements_length), sizeof(trial_elements_length)
         # submatrix_size, n_rows, n_cols = choose_square_submatrix_shape(test_elements_length, trial_elements_length, GPU_budget)
@@ -341,6 +337,9 @@ function assemblechunk_body_gpu!(biop,
 
 
     time_overhead = @elapsed begin
+        empty!(gpu_results_cache)
+
+
         test_shapes = refspace(test_space)
         trial_shapes = refspace(trial_space)
 
@@ -350,8 +349,11 @@ function assemblechunk_body_gpu!(biop,
         length_return_matrix = length(test_space.geo.vertices)
         size_qrule = todo
 
-        
-        elements_length_tuple = (test_elements_length, trial_elements_length)
+        indexes = [round(Int,s) for s in range(0, stop=length(test_elements), length=amount_of_gpus+1)]
+        lengths = ones(Int, amount_of_gpus)
+        for i in 1:amount_of_gpus
+            lengths[i] = indexes[i+1] - indexes[i]
+        end
 
         
         counts = zeros(4)
@@ -362,67 +364,75 @@ function assemblechunk_body_gpu!(biop,
         SauterSchwabQuadratureCommonFace = SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonFaceCustomGpuData}()
         
         InstancedoubleQuadRuleGpuStrategyShouldCalculate = doubleQuadRuleGpuStrategyShouldCalculateInstance()
-        writeBackStrategy = GpuWriteBackFalseInstance()
         
         
         test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix = load_data(backend, type, test_elements_length, test_elements)
         trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix = load_data(backend, type, trial_elements_length, trial_elements)
+        trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix = move(backend, trial_elements_vertices_matrix), move(backend, trial_elements_tangents_matrix), move(backend, trial_elements_volume_matrix)
+    
 
         SauterSchwabQuadratureCommonVertexCustomGpuDataInstance_ = SauterSchwabQuadratureCommonVertexCustomGpuDataInstance()
         SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance_ = SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance()
         SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_ = SauterSchwabQuadratureCommonFaceCustomGpuDataInstance()
 
-        
-        
-        
-        # @show length(test_space)
-        # @show length(trial_space)
-
-        # @show size(test_elements), size(trial_elements)
-        # @show length(test_space), length(trial_space)
-        # @show size(test_assembly_data.data), size(trial_assembly_data.data)
 
         test_assembly_cpu_values, test_assembly_cpu_indexes = validate_and_extract(test_assembly_data, test_elements_length)
         trial_assembly_cpu_values, trial_assembly_cpu_indexes = validate_and_extract(trial_assembly_data, trial_elements_length)
-        # @show size(test_assembly_cpu_values)
-        # @show size(trial_assembly_cpu_values)
-        # @show size(test_assembly_cpu_indexes)
-        # @show size(trial_assembly_cpu_indexes)
-        test_assembly_gpu_values = move(backend, test_assembly_cpu_values)
-        trial_assembly_gpu_values = move(backend, trial_assembly_cpu_values)
-
-        # @show size(test_assembly_cpu_indexes), size(trial_assembly_cpu_indexes)
-        
-        if typeof(writeBackStrategy) == GpuWriteBackTrueInstance
-            test_assembly_gpu_indexes = move(backend, test_assembly_cpu_indexes)
-            trial_assembly_gpu_indexes = move(backend, trial_assembly_cpu_indexes)
-        else
-            test_assembly_gpu_indexes = 0
-            trial_assembly_gpu_indexes = 0
-        end
-        
-
-        # should_calc = create_should_calc(InstancedoubleQuadRuleGpuStrategyShouldCalculate, size_qrule)
-        # should_calc_bit_compact = Matrix{UInt32}(fill(typemax(UInt32), size_qrule, size_qrule))
 
         time_to_store = Threads.Atomic{Float64}(0)
     end
     @show time_overhead
 
     
+    test_elements_vertices_matrix_original, test_elements_tangents_matrix_original, test_elements_volume_matrix_original = test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix
+    trial_elements_vertices_matrix_original, trial_elements_tangents_matrix_original, trial_elements_volume_matrix_original = trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix
+
+    test_assembly_cpu_values_original, test_assembly_cpu_indexes_original = test_assembly_cpu_values, test_assembly_cpu_indexes
+    trial_assembly_cpu_values_original, trial_assembly_cpu_indexes_original = trial_assembly_cpu_values, trial_assembly_cpu_indexes
     
+    
+    offset = 0
+    pref_offet = 0
 
     for i in range_test; for j in range_trail
 
-        
+    
+    elements_length_tuple = (test_elements_length, trial_elements_length)
 
+    
+
+    i_start, i_end = indexes[i]+1, indexes[i+1]
+    test_elements_length_ = lengths[i]
+    offset += test_elements_length_
+    
+    elements_length_tuple = (test_elements_length_, trial_elements_length)
+
+    test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix = test_elements_vertices_matrix_original[i_start:i_end,:,:], test_elements_tangents_matrix_original[i_start:i_end,:,:], test_elements_volume_matrix_original[i_start:i_end]
+    test_assembly_cpu_values, test_assembly_cpu_indexes = test_assembly_cpu_values_original[:,i_start:i_end], test_assembly_cpu_indexes_original[:,i_start:i_end]
+
+    test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix = move(backend, test_elements_vertices_matrix), move(backend, test_elements_tangents_matrix), move(backend, test_elements_volume_matrix)
+    
+
+    reset!(SauterSchwabQuadratureCommonVertex)
+    reset!(SauterSchwabQuadratureCommonEdge)
+    reset!(SauterSchwabQuadratureCommonFace)
+
+    test_assembly_gpu_values = move(backend, test_assembly_cpu_values)
+    trial_assembly_gpu_values = move(backend, trial_assembly_cpu_values)
+    
+    if typeof(writeBackStrategy) == GpuWriteBackTrueInstance
+        test_assembly_gpu_indexes = move(backend, test_assembly_cpu_indexes)
+        trial_assembly_gpu_indexes = move(backend, trial_assembly_cpu_indexes)
+    else
+        test_assembly_gpu_indexes = 0
+        trial_assembly_gpu_indexes = 0
+    end
 
     time_quadrule_types = @elapsed begin   
         quadrule_types_gpu = KernelAbstractions.allocate(backend, Int8, elements_length_tuple)
         # should_calc_gpu_ = KernelAbstractions.allocate(backend, UInt32, (ceil(Int, size_qrule / 32) * 32, size_qrule))
         # should_calc_gpu_ = KernelAbstractions.allocate(backend, UInt32, (ceil(Int, size_qrule / 32) * 32, size_qrule))
         should_calc = KernelAbstractions.allocate(backend, Int8, elements_length_tuple)
-        # @show size(quadrule_types_gpu), size(should_calc), size(test_elements_vertices_matrix), size(trial_elements_vertices_matrix), size(trial_elements_volume_matrix)
         
         abs2_ = abs2(biop.gamma)
         floatmax_type = floatmax(type)
@@ -431,6 +441,7 @@ function assemblechunk_body_gpu!(biop,
         quadrule_determine_type(backend, 512)(quadrule_types_gpu, should_calc, abs2_, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type, ndrange = elements_length_tuple)
         KernelAbstractions.synchronize(backend)
         quadrule_types = Array(quadrule_types_gpu)
+        # @show quadrule_types
         @assert !(4 in quadrule_types)
     end
     @show time_quadrule_types
@@ -439,8 +450,8 @@ function assemblechunk_body_gpu!(biop,
 
     t = Threads.@spawn begin
         time_double_forloop = @elapsed begin
-            for p in 1:test_elements_length
-                tcell = test_elements[p]
+            for p in 1:test_elements_length_
+                tcell = test_elements[p + pref_offet]
                 for q in 1:trial_elements_length
                     if quadrule_types[p,q] != 0
                         # time = @elapsed begin 
@@ -466,28 +477,21 @@ function assemblechunk_body_gpu!(biop,
             biop, SauterSchwabQuadratureCommonVertexCustomGpuDataInstance_, writeBackStrategy, time_table, 2,
             test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
             trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
-            store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonVertex, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
+            store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonVertex, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store, elements_length_tuple)
 
-        # unsafe_free!(result_2)
-
-
-        # result_3 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonEdge)
         sauterschwab_task_2 =  sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonEdge, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
             biop, SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance_, writeBackStrategy, time_table, 3,
             test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
             trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
-            store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonEdge, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
-        # unsafe_free!(result_3)
+            store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonEdge, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store, elements_length_tuple)
 
-
-        # result_4 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonFace)
         sauterschwab_task_3 =  sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonFace, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
             biop, SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_, writeBackStrategy, time_table, 4,
             test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
             trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
-            store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonFace, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
+            store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonFace, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store, elements_length_tuple)
             
         # wait(sauterschwab_task_1)
         # wait(sauterschwab_task_2)
@@ -495,53 +499,30 @@ function assemblechunk_body_gpu!(biop,
     end
     
 
-    # time_double_int = @elapsed begin
-        # producers = []
-        # amount_of_producers = Threads.nthreads()
-    sk = Threads.@spawn schedule_kernel!(
-        backend, 
-        length_return_matrix, size_qrule, elements_length_tuple,
-        writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate,
-        test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, test_assembly_cpu_indexes, trial_assembly_cpu_indexes,
-        biop, should_calc, qd, type, store,
-        time_table, time_to_store,
-        # producers
-    )
-    # end
+    time_double_int = @elapsed begin
+        sk = Threads.@spawn schedule_kernel!(
+            backend, 
+            length_return_matrix, size_qrule, elements_length_tuple,
+            writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate,
+            test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, test_assembly_cpu_indexes, trial_assembly_cpu_indexes,
+            biop, should_calc, qd, type, store,
+            time_table, time_to_store, pref_offet
+            # producers
+        )
+        wait(sk)
+    end
+    @show time_double_int
 
     # Threads.atomic_add!(time_table[2,1], time_double_int)
     # time_table[2,1] = time_double_int
 
 
     
-    
-
-
-
 
     wait(t) 
-    
-    # result_2 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonVertex)
-    
-
-
-    wait(sk)
 
     
-    # time_to_store += @elapsed begin
-    #     write_to_compact_matrix(result_2, store, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonVertex, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
-    # end
-    # time_to_store += @elapsed begin
-    #     write_to_compact_matrix(result_3, store, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonEdge, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
-    # end
-    # time_to_store += @elapsed begin
-    #     write_to_compact_matrix(result_4, store, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCommonFace, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
-    # end
-
-    # unsafe_free!(result_4)
-
-
-    # KernelAbstractions.synchronize(backend)
+    pref_offet = offset
 
     end end
 
@@ -550,7 +531,7 @@ function assemblechunk_body_gpu!(biop,
     @show time_table[2,:]
     @show counts
     @show time_to_store
-    # myid == 1 && println("")
+
 end
 
 

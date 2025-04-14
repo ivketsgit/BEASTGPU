@@ -58,21 +58,22 @@ function producer(ch_data::Channel, backend,
         #     end
         # end
         # @lock lock write_to_compact_matrix(result_cpu, store, length_return_matrix, ndrange, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
-        write_to_compact_matrix(result_cpu, store, length_return_matrix, ndrange, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
-        
+        if typeof(writeBackStrategy) == GpuWriteBackFalseInstance
+            write_to_compact_matrix(result_cpu, store, length_return_matrix, ndrange, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
+        end
         # item = (result_cpu, ndrange, curr_offsets, i, j)
         # put!(ch_store, item)
         # println("produced ",i, " ",j)
     end
 end
 
-function load_data(backend, type, size_qrule, qd_points, length_1, length_2 = 3)
+function load_data(backend, type, size_qrule, qd_points, pref_offet, length_1, length_2 = 3)
     weights = Array{type}(undef, size_qrule, length_1)
     values = Array{type}(undef, size_qrule, length_1, length_2)
     cart =   Array{type}(undef, size_qrule, length_1, length_2)
 
     for i in 1:size_qrule
-        qd_points_1i = qd_points[1,i]
+        qd_points_1i = qd_points[1,i + pref_offet]
         @assert size(qd_points_1i)[1] == length_1
         for j in 1:length_1
             weights[i,j] = qd_points_1i[j].weight
@@ -98,15 +99,15 @@ function schedule_kernel!(
         writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate,
         test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, 
         biop, should_calc, qd, type, store,
-        time_table, time_to_store, 
+        time_table, time_to_store, pref_offet,
         producers  = []
     )
 
     time = @elapsed begin
         length_1 = 3
         length_2 = 4
-        womps_weights, womps_values, womps_cart = load_data(backend, type, elements_length_tuple[1], qd.tpoints, length_1)
-        wimps_weights, wimps_values, wimps_cart = load_data(backend, type, elements_length_tuple[2], qd.bpoints, length_2)
+        womps_weights, womps_values, womps_cart = load_data(backend, type, elements_length_tuple[1], qd.tpoints, pref_offet,  length_1)
+        wimps_weights, wimps_values, wimps_cart = load_data(backend, type, elements_length_tuple[2], qd.bpoints, 0, length_2)
         womps_weights, womps_values, womps_cart = move(backend, womps_weights), move(backend, womps_values), move(backend, womps_cart)
         wimps_weights, wimps_values, wimps_cart = move(backend, wimps_weights), move(backend, wimps_values), move(backend, wimps_cart)
     end
@@ -115,8 +116,8 @@ function schedule_kernel!(
 
 
     case = 3
-    if case == 1 
-        result_1 = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate)
+    if typeof(writeBackStrategy) == GpuWriteBackTrueInstance
+        result_1 = create_results_matrix_gpu(backend, length_return_matrix, elements_length_tuple, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate)
         doubleQuadRule_generic_3d_gpu_outside_loop!(result_1,
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values,
             size_qrule,
@@ -126,15 +127,16 @@ function schedule_kernel!(
             womps_cart, wimps_cart, 
             0, 0,
             InstancedoubleQuadRuleGpuStrategyShouldCalculate, writeBackStrategy,
-            time_table, 1, (size_qrule, size_qrule), should_calc
+            time_table, 1, elements_length_tuple, should_calc
         )
         KernelAbstractions.synchronize(backend)
 
-        time_to_store += @elapsed begin
-            write_to_compact_matrix(result_1, store, length_return_matrix, size_qrule, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
-        end
+        # time_to_store += @elapsed begin
+
+            # write_to_compact_matrix(result_1, store, length_return_matrix, size_qrule, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
+        # end
     elseif case == 2
-        GPU_budget = 1 * GiB
+        GPU_budget = 7 * GiB
         amount_of_producers = 8#Threads.nthreads()
         amount_of_consumers = 4
 
@@ -150,6 +152,7 @@ function schedule_kernel!(
 
         results = KernelAbstractions.allocate(backend, ComplexF64, (size_submatrix, size_submatrix, 9))
 
+        @show blocks_x, blocks_y
         for j in 1:blocks_y
             for i in 1:blocks_x
                 ndrange = [size_submatrix, size_submatrix]
@@ -255,14 +258,6 @@ function schedule_kernel!(
             end
         end
         @show time
-        # time_table[2,index] = Threads.Atomic{Float64}(0)
-        # time = @elapsed begin
-        #     for p in producers
-        #         wait(p)
-        #     end
-        # end
-        # @show time
-        # close(ch_store)  
     end
 end
 

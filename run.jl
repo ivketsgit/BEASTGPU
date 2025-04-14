@@ -9,87 +9,87 @@ using Serialization
 include("assamble_gpu.jl")
 include("utils/backend.jl")
 
-@kernel function warmup_gpu_kernel()
-    # i = @index(Global, Linear)
-end
+# @kernel function warmup_gpu_kernel()
+#     # i = @index(Global, Linear)
+# end
 
-function warmup_gpu()
-    time_warmup = @elapsed begin
-        # KernelAbstractions.allocate(backend, Int8, 256)
-        warmup_gpu_kernel(backend)(ndrange = 1)
-    end
-    @show time_warmup
-end
-Threads.@spawn warmup_gpu()
+# function warmup_gpu()
+#     time_warmup = @elapsed begin
+#         # KernelAbstractions.allocate(backend, Int8, 256)
+#         warmup_gpu_kernel(backend)(ndrange = 1)
+#     end
+#     @show time_warmup
+# end
+# Threads.@spawn warmup_gpu()
 
-warmup_thread = Threads.@spawn begin
-    writeBackStrategy = GpuWriteBackFalseInstance()
-    SauterSchwabQuadratureCommonVertexCustomGpuDataInstance_ = SauterSchwabQuadratureCommonVertexCustomGpuDataInstance()
-    SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance_ = SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance()
-    SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_ = SauterSchwabQuadratureCommonFaceCustomGpuDataInstance()
-    γ = Float64(1.0)
-    α = Float64(1.0)
+# warmup_thread = Threads.@spawn begin
+#     writeBackStrategy = GpuWriteBackFalseInstance()
+#     SauterSchwabQuadratureCommonVertexCustomGpuDataInstance_ = SauterSchwabQuadratureCommonVertexCustomGpuDataInstance()
+#     SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance_ = SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance()
+#     SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_ = SauterSchwabQuadratureCommonFaceCustomGpuDataInstance()
+#     γ = Float64(1.0)
+#     α = Float64(1.0)
     
 
-    warmup_result = KernelAbstractions.zeros(backend, ComplexF64, (1,9))
-    warmup_qps = KernelAbstractions.ones(backend, Float64, (1,4,2))
+#     warmup_result = KernelAbstractions.zeros(backend, ComplexF64, (1,9))
+#     warmup_qps = KernelAbstractions.ones(backend, Float64, (1,4,2))
 
-    warmup_test_vert = KernelAbstractions.zeros(backend, Float64, (1,3,3))
-    warmup_trail_vert = KernelAbstractions.ones(backend, Float64, (1,3,3))
-    warmup_test_tan = KernelAbstractions.zeros(backend, Float64, (1,3,3))
-    warmup_trail_tan = KernelAbstractions.ones(backend, Float64, (1,3,3))
-    warmup_test_vol = KernelAbstractions.zeros(backend, Float64, (1,3))
-    warmup_trail_vol = KernelAbstractions.ones(backend, Float64, (1,3))
+#     warmup_test_vert = KernelAbstractions.zeros(backend, Float64, (1,3,3))
+#     warmup_trail_vert = KernelAbstractions.ones(backend, Float64, (1,3,3))
+#     warmup_test_tan = KernelAbstractions.zeros(backend, Float64, (1,3,3))
+#     warmup_trail_tan = KernelAbstractions.ones(backend, Float64, (1,3,3))
+#     warmup_test_vol = KernelAbstractions.zeros(backend, Float64, (1,3))
+#     warmup_trail_vol = KernelAbstractions.ones(backend, Float64, (1,3))
 
-    warmup_ichart1_vert = KernelAbstractions.zeros(backend, Float64, (1,3,2))
-    warmup_ichart2_vert = KernelAbstractions.ones(backend, Float64, (1,3,2))
-    warmup_ichart1_tan = KernelAbstractions.zeros(backend, Float64, (1,2,2))
-    warmup_ichart2_tan = KernelAbstractions.ones(backend, Float64, (1,2,2))
+#     warmup_ichart1_vert = KernelAbstractions.zeros(backend, Float64, (1,3,2))
+#     warmup_ichart2_vert = KernelAbstractions.ones(backend, Float64, (1,3,2))
+#     warmup_ichart1_tan = KernelAbstractions.zeros(backend, Float64, (1,2,2))
+#     warmup_ichart2_tan = KernelAbstractions.ones(backend, Float64, (1,2,2))
 
-    warmup_store_index = KernelAbstractions.ones(backend, Int64, (1,2))
+#     warmup_store_index = KernelAbstractions.ones(backend, Int64, (1,2))
 
-    warmup_test_assembly_gpu_indexes = KernelAbstractions.ones(backend, Int64, ())
-    warmup_trial_assembly_gpu_indexes = KernelAbstractions.ones(backend, Int64, ())
-    warmup_test_assembly_gpu_values = KernelAbstractions.ones(backend, Float64, (3,1))
-    warmup_trial_assembly_gpu_values = KernelAbstractions.ones(backend, Float64, (3,1))
+#     warmup_test_assembly_gpu_indexes = KernelAbstractions.ones(backend, Int64, ())
+#     warmup_trial_assembly_gpu_indexes = KernelAbstractions.ones(backend, Int64, ())
+#     warmup_test_assembly_gpu_values = KernelAbstractions.ones(backend, Float64, (3,1))
+#     warmup_trial_assembly_gpu_values = KernelAbstractions.ones(backend, Float64, (3,1))
 
     
-    warmup_womps_weights = KernelAbstractions.zeros(backend, Float64, (1,3))
-    warmup_wimps_weights = KernelAbstractions.ones(backend, Float64, (1,4))
-    warmup_womps_values = KernelAbstractions.zeros(backend, Float64, (1,3,3))
-    warmup_wimps_values = KernelAbstractions.ones(backend, Float64, (1,3,4))
-    warmup_womps_cart = KernelAbstractions.zeros(backend, Float64, (1,3,3))
-    warmup_wimps_cart = KernelAbstractions.ones(backend, Float64, (1,3,4))
+#     warmup_womps_weights = KernelAbstractions.zeros(backend, Float64, (1,3))
+#     warmup_wimps_weights = KernelAbstractions.ones(backend, Float64, (1,4))
+#     warmup_womps_values = KernelAbstractions.zeros(backend, Float64, (1,3,3))
+#     warmup_wimps_values = KernelAbstractions.ones(backend, Float64, (1,3,4))
+#     warmup_womps_cart = KernelAbstractions.zeros(backend, Float64, (1,3,3))
+#     warmup_wimps_cart = KernelAbstractions.ones(backend, Float64, (1,3,4))
 
-    warmup_should_calc = KernelAbstractions.ones(backend, Int8, (1,1))
+#     warmup_should_calc = KernelAbstractions.ones(backend, Int8, (1,1))
 
-    combined_kernel_temp_outside_loops_linear_index!(backend)(
-        warmup_result,
-        warmup_test_assembly_gpu_indexes, warmup_trial_assembly_gpu_indexes, warmup_test_assembly_gpu_values, warmup_trial_assembly_gpu_values, 
-        1,
-        γ, α,
-        warmup_womps_weights, warmup_wimps_weights, 
-        warmup_womps_values, warmup_wimps_values,
-        warmup_womps_cart, warmup_wimps_cart, 
-        0, 0,
-        instance, writeBackStrategy,
-        warmup_should_calc,
-        warmup_store_index,
-        ndrange = (1,1))
+#     combined_kernel_temp_outside_loops_linear_index!(backend)(
+#         warmup_result,
+#         warmup_test_assembly_gpu_indexes, warmup_trial_assembly_gpu_indexes, warmup_test_assembly_gpu_values, warmup_trial_assembly_gpu_values, 
+#         1,
+#         γ, α,
+#         warmup_womps_weights, warmup_wimps_weights, 
+#         warmup_womps_values, warmup_wimps_values,
+#         warmup_womps_cart, warmup_wimps_cart, 
+#         0, 0,
+#         instance, writeBackStrategy,
+#         warmup_should_calc,
+#         warmup_store_index,
+#         ndrange = (1,1))
     
-    sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(warmup_result, warmup_qps, 
-    warmup_test_vert, warmup_trail_vert, warmup_test_tan, warmup_trail_tan, warmup_test_vol, warmup_trail_vol, warmup_ichart1_vert, warmup_ichart2_vert, warmup_ichart1_tan, warmup_ichart2_tan, warmup_store_index, 
-    warmup_test_assembly_gpu_indexes, warmup_trial_assembly_gpu_indexes, warmup_test_assembly_gpu_values, warmup_trial_assembly_gpu_values, 
-    γ, α, SauterSchwabQuadratureCommonVertexCustomGpuDataInstance_, writeBackStrategy, ndrange = (1))
-    sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(warmup_result, warmup_qps, 
-    warmup_test_vert, warmup_trail_vert, warmup_test_tan, warmup_trail_tan, warmup_test_vol, warmup_trail_vol, warmup_ichart1_vert, warmup_ichart2_vert, warmup_ichart1_tan, warmup_ichart2_tan, warmup_store_index, 
-    warmup_test_assembly_gpu_indexes, warmup_trial_assembly_gpu_indexes, warmup_test_assembly_gpu_values, warmup_trial_assembly_gpu_values, 
-    γ, α, SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance_, writeBackStrategy, ndrange = (1))
-    sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(warmup_result, warmup_qps, 
-    warmup_test_vert, warmup_trail_vert, warmup_test_tan, warmup_trail_tan, warmup_test_vol, warmup_trail_vol, warmup_ichart1_vert, warmup_ichart2_vert, warmup_ichart1_tan, warmup_ichart2_tan, warmup_store_index, 
-    warmup_test_assembly_gpu_indexes, warmup_trial_assembly_gpu_indexes, warmup_test_assembly_gpu_values, warmup_trial_assembly_gpu_values, 
-    γ, α, SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_, writeBackStrategy, ndrange = (1))
-end
+#     sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(warmup_result, warmup_qps, 
+#     warmup_test_vert, warmup_trail_vert, warmup_test_tan, warmup_trail_tan, warmup_test_vol, warmup_trail_vol, warmup_ichart1_vert, warmup_ichart2_vert, warmup_ichart1_tan, warmup_ichart2_tan, warmup_store_index, 
+#     warmup_test_assembly_gpu_indexes, warmup_trial_assembly_gpu_indexes, warmup_test_assembly_gpu_values, warmup_trial_assembly_gpu_values, 
+#     γ, α, SauterSchwabQuadratureCommonVertexCustomGpuDataInstance_, writeBackStrategy, ndrange = (1))
+#     sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(warmup_result, warmup_qps, 
+#     warmup_test_vert, warmup_trail_vert, warmup_test_tan, warmup_trail_tan, warmup_test_vol, warmup_trail_vol, warmup_ichart1_vert, warmup_ichart2_vert, warmup_ichart1_tan, warmup_ichart2_tan, warmup_store_index, 
+#     warmup_test_assembly_gpu_indexes, warmup_trial_assembly_gpu_indexes, warmup_test_assembly_gpu_values, warmup_trial_assembly_gpu_values, 
+#     γ, α, SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance_, writeBackStrategy, ndrange = (1))
+#     sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(warmup_result, warmup_qps, 
+#     warmup_test_vert, warmup_trail_vert, warmup_test_tan, warmup_trail_tan, warmup_test_vol, warmup_trail_vol, warmup_ichart1_vert, warmup_ichart2_vert, warmup_ichart1_tan, warmup_ichart2_tan, warmup_store_index, 
+#     warmup_test_assembly_gpu_indexes, warmup_trial_assembly_gpu_indexes, warmup_test_assembly_gpu_values, warmup_trial_assembly_gpu_values, 
+#     γ, α, SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_, writeBackStrategy, ndrange = (1))
+# end
 
 inv_density_factor = 20
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
@@ -97,10 +97,11 @@ X = lagrangec0d1(Γ)
 S = Helmholtz3D.singlelayer(wavenumber = 1.0)
 filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
 
+writeBackStrategy = GpuWriteBackFalseInstance()
 
 let time = @elapsed begin
     # @show @which assemble(S,X,X)
-        M_ref = assemble(S,X,X)
+        M_ref = BEAST.assemble(S,X,X)
     end
     # open(filename, "w") do io
     #     serialize(io, M_ref)
@@ -110,7 +111,14 @@ let time = @elapsed begin
 end
 
 let time = @elapsed begin
-        M = assemble_gpu(S,X,X)
+        M_ref_gpu = assemble_gpu(S,X,X,writeBackStrategy,1)
+    end 
+    println("Elapsed time: ", time)
+    println("")
+end
+
+let time = @elapsed begin
+        M = assemble_gpu(S,X,X,writeBackStrategy,2)
     end 
     println("Elapsed time: ", time)
     println("")
@@ -122,8 +130,13 @@ end
 #     deserialize(io)
 # end
 
-error_matrix = abs.(M_ref .- M)
 println("")
+
+error_matrix = abs.(M_ref .- M)
+@show maximum(error_matrix)
+error_matrix = abs.(M_ref .- M_ref_gpu)
+@show maximum(error_matrix)
+error_matrix = abs.(M_ref_gpu .- M)
 @show maximum(error_matrix)
 # @show M
 # @show M_ref

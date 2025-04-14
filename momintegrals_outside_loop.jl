@@ -241,7 +241,7 @@ function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCust
     biop, instances::CustomGpuData, writeBackStrategy::GpuWriteBack, time_table, index,
     test_vert, test_tan, test_vol,
     trail_vert, trail_tan, trail_vol,
-    store, length_return_matrix, size_qrule, SauterSchwabQuadraturetype, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
+    store, length_return_matrix, size_qrule, SauterSchwabQuadraturetype, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store, elements_length_tuple)
 
 
     time_1 = @elapsed begin
@@ -252,12 +252,11 @@ function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCust
         qps, store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = load_data_to_gpu(SauterSchwabQuadratureCustomGpuData, length, backend, instances, test_vert, trail_vert)
     end
     
-    result = create_results_matrix_gpu(backend, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadratureCustomGpuData)
+    result = create_results_matrix_gpu(backend, length_return_matrix, elements_length_tuple, writeBackStrategy, SauterSchwabQuadratureCustomGpuData)
 
     time_2 = @elapsed begin
         qps, store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = move(backend, qps), move(backend, store_index), move(backend, ichart1_vert), move(backend, ichart2_vert), move(backend, ichart1_tan), move(backend, ichart2_tan)
 
-        
         sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(result, qps, 
             test_vert, trail_vert, test_tan, trail_tan, test_vol, trail_vol, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, store_index, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
@@ -265,13 +264,13 @@ function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCust
         KernelAbstractions.synchronize(backend)
     end
 
+    
     time_to_store_ = @elapsed begin
         write_to_compact_matrix(result, store, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadraturetype, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
     end
     Threads.atomic_add!(time_to_store, time_to_store_)
+    
 
     Threads.atomic_add!(time_table[1,index], time_1)
     Threads.atomic_add!(time_table[2,index], time_2)
-    # time_table[1,index] += time_1
-    # time_table[2,index] += time_2
 end
