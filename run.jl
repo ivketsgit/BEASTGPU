@@ -92,13 +92,13 @@ include("utils/backend.jl")
 #     γ, α, SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_, writeBackStrategy, ndrange = (1))
 # end
 
-inv_density_factor = 20
+inv_density_factor = 1
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
 X = lagrangec0d1(Γ) 
 S = Helmholtz3D.singlelayer(wavenumber = 1.0)
 filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
 
-writeBackStrategy = GpuWriteBackFalseInstance()
+writeBackStrategy = GpuWriteBackTrueInstance()
 
 let time = @elapsed begin
     # @show @which assemble(S,X,X)
@@ -127,9 +127,9 @@ end
 # @show M_ref
 # @show M
 
-M_ref = open(filename, "r") do io
-    deserialize(io)
-end
+# M_ref = open(filename, "r") do io
+#     deserialize(io)
+# end
 
 println("")
 

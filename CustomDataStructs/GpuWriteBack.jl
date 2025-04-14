@@ -10,7 +10,6 @@ struct GpuWriteBackFalseInstance <: GpuWriteBackFalse end
 
 const gpu_results_cache = IdDict()
 function create_results_matrix_gpu(backend, length_return_matrix, size_qrule, T::GpuWriteBackTrue, any)
-    println("create_results_matrix_gpu GpuWriteBackTrue")
     if haskey(gpu_results_cache, 1)
         return gpu_results_cache[1]
     else
@@ -21,13 +20,11 @@ function create_results_matrix_gpu(backend, length_return_matrix, size_qrule, T:
 end
 
 function create_results_matrix_gpu(backend, length_return_matrix, elements_length_tuple, T::GpuWriteBackFalse, T2::doubleQuadRuleGpuStrategy)
-    println("create_results_matrix_gpu GpuWriteBackFalse doubleQuadRuleGpuStrategy")
     return KernelAbstractions.allocate(backend, ComplexF64, (elements_length_tuple[1], elements_length_tuple[2], 9))
     # return KernelAbstractions.zeros(backend, ComplexF64, size_qrule, size_qrule, 9)
 end
 
 function create_results_matrix_gpu(backend, length_return_matrix, size_qrule, T::GpuWriteBackFalse, T2::SauterSchwabQuadrature_gpu_data)
-    println("create_results_matrix_gpu GpuWriteBackFalse SauterSchwabQuadrature_gpu_data")
     return KernelAbstractions.allocate(backend, ComplexF64, (size(T2.store_index)[1], 9))
     # return KernelAbstractions.zeros(backend, ComplexF64, size(T2.store_index)[1], 9)
 end
