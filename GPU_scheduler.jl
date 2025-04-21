@@ -152,7 +152,6 @@ function schedule_kernel!(
 
         results = KernelAbstractions.allocate(backend, ComplexF64, (size_submatrix, size_submatrix, 9))
 
-        @show blocks_x, blocks_y
         for j in 1:blocks_y
             for i in 1:blocks_x
                 ndrange = [size_submatrix, size_submatrix]
@@ -196,9 +195,8 @@ function schedule_kernel!(
 
         
     elseif case == 3
-        GPU_budget = 1 * GiB
+        GPU_budget = 6 * GiB
         amount_of_producers = Threads.nthreads()
-        @show amount_of_producers
         amount_of_consumers = 4
 
         lock = ReentrantLock()
@@ -206,6 +204,7 @@ function schedule_kernel!(
         GPU_spent_by_data = (length_1 * elements_length_tuple[1] + 2 * 3 * length_1 * elements_length_tuple[1]
                             + length_2 * elements_length_tuple[2] + 2 * 3 * length_2 * elements_length_tuple[2]) * sizeof(type) #in bytes
         GPU_spent_by_should_calc = 1 * elements_length_tuple[1] * elements_length_tuple[2]
+
         GPU_budget -= GPU_spent_by_data + GPU_spent_by_should_calc
 
         size_submatrix = ceil(Int64, sqrt(GPU_budget / (amount_of_producers * 9 * sizeof(ComplexF64))))
@@ -258,7 +257,7 @@ function schedule_kernel!(
                 wait(p)
             end
         end
-        @show time
+        # @show time
     end
 end
 

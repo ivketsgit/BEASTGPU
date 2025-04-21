@@ -53,3 +53,19 @@ function reset!(data::SauterSchwabQuadrature_gpu_data)
     data.store_index = []
     return data
 end
+
+
+function merge_into_first!(objs)
+    first_obj = objs[1]
+    for i in 2:length(objs)
+        append!(first_obj.ichart1_vert, objs[i].ichart1_vert)
+        append!(first_obj.ichart2_vert, objs[i].ichart2_vert)
+        append!(first_obj.ichart1_tan, objs[i].ichart1_tan)
+        append!(first_obj.ichart2_tan, objs[i].ichart2_tan)
+        append!(first_obj.ichart1_vol, objs[i].ichart1_vol)
+        append!(first_obj.ichart2_vol, objs[i].ichart2_vol)
+        append!(first_obj.qps, objs[i].qps)
+        append!(first_obj.store_index, objs[i].store_index)
+    end
+    return first_obj
+end

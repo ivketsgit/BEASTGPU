@@ -92,13 +92,29 @@ include("utils/backend.jl")
 #     γ, α, SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_, writeBackStrategy, ndrange = (1))
 # end
 
-inv_density_factor = 1
+
+writeBackStrategy = GpuWriteBackTrueInstance()
+#warmup
+Γ = meshcuboid(1.0,1.0,1.0,1.0)
+dimension(Γ)
+X = lagrangec0d1(Γ) 
+S = Helmholtz3D.singlelayer(wavenumber = 1.0)
+M_ref = BEAST.assemble(S,X,X)
+M_ref_gpu = assemble_gpu(S,X,X,writeBackStrategy,1)
+
+
+inv_density_factor = 40
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
+# Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor; generator=:gmsh)
 X = lagrangec0d1(Γ) 
 S = Helmholtz3D.singlelayer(wavenumber = 1.0)
 filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
 
-writeBackStrategy = GpuWriteBackTrueInstance()
+
+# @show dimension(Γ)
+vertices = skeleton(Γ, 0)
+num_nodes = length(vertices)
+@show num_nodes
 
 let time = @elapsed begin
     # @show @which assemble(S,X,X)
@@ -118,12 +134,12 @@ let time = @elapsed begin
     println("")
 end
 
-let time = @elapsed begin
-        M = assemble_gpu(S,X,X,writeBackStrategy,2)
-    end 
-    println("Elapsed time: ", time)
-    println("")
-end
+# let time = @elapsed begin
+#         M = assemble_gpu(S,X,X,writeBackStrategy,2)
+#     end 
+#     println("Elapsed time: ", time)
+#     println("")
+# end
 # @show M_ref
 # @show M
 
@@ -131,14 +147,14 @@ end
 #     deserialize(io)
 # end
 
-println("")
+# println("")
 
-error_matrix = abs.(M_ref .- M)
-@show maximum(error_matrix)
-error_matrix = abs.(M_ref .- M_ref_gpu)
-@show maximum(error_matrix)
-error_matrix = abs.(M_ref_gpu .- M)
-@show maximum(error_matrix)
+# # error_matrix = abs.(M_ref .- M)
+# # @show maximum(error_matrix)
+# error_matrix = abs.(M_ref .- M_ref_gpu)
+# @show maximum(error_matrix)
+# error_matrix = abs.(M_ref_gpu .- M)
+# @show maximum(error_matrix)
 # @show M
 # @show M_ref
 # for (i, e) in enumerate(abs.(M_ref .- M))

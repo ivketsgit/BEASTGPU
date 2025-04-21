@@ -11,9 +11,28 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
     split = false
     Z = assemble_gpu!(operator, test_functions, trial_functions, writeBackStrategy, amount_of_gpus, store, threading; quadstrat, split)
     if typeof(writeBackStrategy) == GpuWriteBackTrueInstance
-        result_cpu = Array(gpu_results_cache[1])
-        result_cpu = complex.(view(result_cpu, 1, :, :), view(result_cpu, 2, :, :))
-        return result_cpu
+        # time_read_out_matrix = @elapsed begin
+            result_cpu = Array(gpu_results_cache[1])
+            result_cpu = complex.(view(result_cpu, 1, :, :), view(result_cpu, 2, :, :))
+            return result_cpu
+        # end
+    #     # @show time_read_out_matrix
+    #     # time_read_out_matrix = @elapsed begin
+    #     #     result_gpu = gpu_results_cache[1]
+    #     #     result_cpu = complex.(Array(result_gpu[1, :, :]), Array(result_gpu[2, :, :]))
+    #     # end
+    #     # @show time_read_out_matrix
+    #     # time_read_out_matrix = @elapsed begin
+    #     #     result_cpu_raw = Array(gpu_results_cache[1])
+    #     #     M, N = size(result_cpu_raw, 2), size(result_cpu_raw, 3)
+    #     #     result_cpu = Array{ComplexF32}(undef, M, N)  # or ComplexF64 depending on original
+    #     #     @inbounds for i in 1:M, j in 1:N
+    #     #         result_cpu[i, j] = Complex(result_cpu_raw[1, i, j], result_cpu_raw[2, i, j])
+    #     #     end 
+    #     # end
+    #     # @show time_read_out_matrix
+    #     empty!(gpu_results_cache)
+    #     return result_cpu
     end
     real_part = Z_real()
     imag_part = Z_imag

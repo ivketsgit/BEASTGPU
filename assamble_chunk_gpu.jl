@@ -90,16 +90,9 @@ end
 const CommonVertexNumber = 1
 const CommonEdgeNumber = 2
 const CommonFaceNumber = 3
-function load_data_to_custum_data!(tcell, bcell, qrule, qrule_type_number,  p, q, SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace)
-    if qrule_type_number == CommonVertexNumber
-        cpu_data = SauterSchwabQuadratureCommonVertex
-    elseif qrule_type_number == CommonEdgeNumber
-        cpu_data = SauterSchwabQuadratureCommonEdge
-    elseif qrule_type_number == CommonFaceNumber
-        cpu_data = SauterSchwabQuadratureCommonFace
-    else
-        throw("qrule gpu not supported")
-    end
+function load_data_to_custum_data!(tcell, bcell, qrule_and_datastorages, p, q)
+    qrule = qrule_and_datastorages[1]
+    cpu_data = qrule_and_datastorages[2]
 
     I, J, _, _ = SauterSchwabQuadrature.reorder(
         vertices(tcell),
@@ -121,16 +114,9 @@ function load_data_to_custum_data!(tcell, bcell, qrule, qrule_type_number,  p, q
     ) 
 end
 
-function load_data_to_custum_data_for_gpu!(tcell, bcell, qrule, qrule_type_number,  p, q, SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace)
-    if qrule_type_number == CommonVertexNumber
-        cpu_data = SauterSchwabQuadratureCommonVertex
-    elseif qrule_type_number == CommonEdgeNumber
-        cpu_data = SauterSchwabQuadratureCommonEdge
-    elseif qrule_type_number == CommonFaceNumber
-        cpu_data = SauterSchwabQuadratureCommonFace
-    else
-        throw("qrule gpu not supported")
-    end
+function load_data_to_custum_data_for_gpu!(tcell, bcell, qrule_and_datastorages, p, q)
+    qrule = qrule_and_datastorages[1]
+    cpu_data = qrule_and_datastorages[2]
 
     add_element(cpu_data, SVector{4}(map(t -> SVector{2}(t...), qrule.qps)), SVector{2, Int64}(p, q)) 
 end
@@ -173,10 +159,10 @@ const xtol2 = 0.2 * 0.2
 end
 
 
-function transformHitsToSauterSchwabQuadrature(hits, qd)
-    hits == 1 && return SauterSchwabQuadrature.CommonVertex(qd.gausslegendre[hits])
-    hits == 2 && return SauterSchwabQuadrature.CommonEdge(qd.gausslegendre[hits])
-    hits == 3 && return SauterSchwabQuadrature.CommonFace(qd.gausslegendre[hits])
+function transformHitsToSauterSchwabQuadrature(hits, qd , SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace)
+    hits == 1 && return (SauterSchwabQuadrature.CommonVertex(qd.gausslegendre[hits]), SauterSchwabQuadratureCommonVertex)
+    hits == 2 && return (SauterSchwabQuadrature.CommonEdge(qd.gausslegendre[hits]), SauterSchwabQuadratureCommonEdge)
+    hits == 3 && return (SauterSchwabQuadrature.CommonFace(qd.gausslegendre[hits]), SauterSchwabQuadratureCommonFace)
 end
 
 function load_data(backend, type, size_qrule, test_elements)
@@ -229,6 +215,44 @@ function choose_square_submatrix_shape(A::Int, target_size::Int)
 end
 
 
+function sort_quadrule_into_custom_datastruct(SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace, 
+    counts, start, stop,
+    pref_offet, trial_elements_length, test_elements, trial_elements, quadrule_types, qd)
+
+    # @show SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace
+    # @show counts
+    # @show start, stop
+
+
+    for p in start:stop
+        tcell = test_elements[p + pref_offet]
+        for q in 1:trial_elements_length
+            if quadrule_types[p,q] != 0
+                # time = @elapsed begin 
+                    # index = ((p - 1) ÷ 32 ) + 1
+                    # bitindex = ((p - 1) % 32 ) + 1
+                    # should_calc[index,q] = should_calc[index, q] & ~(1 << (bitindex - 1))
+
+                    # should_calc[p,q] = 0
+
+                bcell = trial_elements[q]
+                qrule_and_datastorages = transformHitsToSauterSchwabQuadrature(quadrule_types[p,q], qd, SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace)
+                
+                load_data_to_custum_data_for_gpu!(tcell, bcell, qrule_and_datastorages, p, q)
+                # end
+                # time_table[1, quadrule_types[p,q] + 1] += time
+                # if quadrule_types[p,q] != 1 && quadrule_types[p,q] != 2 && quadrule_types[p,q] != 3
+                #     @show quadrule_types[p,q]
+                # end
+                # counts[quadrule_types[p,q]] += 1
+            end
+        end
+    end
+end
+
+
+
+
 function assemblechunk_body_gpu!(biop,
     test_space, test_elements, test_assembly_data, test_cell_ptrs,
     trial_space, trial_elements, trial_assembly_data, trial_cell_ptrs,
@@ -278,7 +302,7 @@ function assemblechunk_body_gpu!(biop,
                     + test_elements_length *  trial_elements_length * sizeof(Int8)                            # sizeof(should_calc)
                     + (3 * test_elements_length + 2 * 3 * 3 * test_elements_length                          # sizeof(womps_weights, womps_values, womps_cart)
                     + 4 * trial_elements_length + 2 * 3 * 4 * trial_elements_length) * sizeof(type)         # sizeof(wimps_weights, wimps_values, wimps_cart)
-                    + 1 * 10^30                                                                                     # sizeof of return matrix on gpu for dubble Int
+                    + 6 * 10^30                                                                                     # sizeof of return matrix on gpu for dubble Int
 
                     
                     +   ((3 * 2) * sizeof(Float64)                                                                    # sizeof(ichart1_vert) 
@@ -290,8 +314,8 @@ function assemblechunk_body_gpu!(biop,
                     ) * (test_elements_length * trial_elements_length)                                      # for Vertex,z Edge and Face
                     +    1 * 10^30 * 3                                                                              # sizeof of return matrix on gpu for dubble Int
 
-    @show GPU_budget
-    @show calc_budget
+    # @show GPU_budget
+    # @show calc_budget
 
     if GPU_budget >= calc_budget
         range_test = 1:amount_of_gpus
@@ -335,7 +359,7 @@ function assemblechunk_body_gpu!(biop,
 
 
 
-    time_overhead = @elapsed begin
+    # time_overhead = @elapsed begin
         empty!(gpu_results_cache)
 
 
@@ -379,8 +403,8 @@ function assemblechunk_body_gpu!(biop,
         trial_assembly_cpu_values, trial_assembly_cpu_indexes = validate_and_extract(trial_assembly_data, trial_elements_length)
 
         time_to_store = Threads.Atomic{Float64}(0)
-    end
-    @show time_overhead
+    # end
+    # @show time_overhead
 
     
     test_elements_vertices_matrix_original, test_elements_tangents_matrix_original, test_elements_volume_matrix_original = test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix
@@ -393,6 +417,8 @@ function assemblechunk_body_gpu!(biop,
     offset = 0
     pref_offet = 0
 
+    time_double_int = 0
+
     for i in range_test; for j in range_trail
 
     
@@ -403,6 +429,9 @@ function assemblechunk_body_gpu!(biop,
     i_start, i_end = indexes[i]+1, indexes[i+1]
     test_elements_length_ = lengths[i]
     offset += test_elements_length_
+
+    @show test_elements_length_ * trial_elements_length
+    continue  
     
     elements_length_tuple = (test_elements_length_, trial_elements_length)
 
@@ -446,59 +475,106 @@ function assemblechunk_body_gpu!(biop,
     @show time_quadrule_types
 
 
+   
 
     t = Threads.@spawn begin
-        time_double_forloop = @elapsed begin
-            for p in 1:test_elements_length_
-                tcell = test_elements[p + pref_offet]
-                for q in 1:trial_elements_length
-                    if quadrule_types[p,q] != 0
-                        # time = @elapsed begin 
-                            # index = ((p - 1) ÷ 32 ) + 1
-                            # bitindex = ((p - 1) % 32 ) + 1
-                            # should_calc[index,q] = should_calc[index, q] & ~(1 << (bitindex - 1))
-
-                            # should_calc[p,q] = 0
-
-                            bcell = trial_elements[q]
-                            load_data_to_custum_data_for_gpu!(tcell, bcell, transformHitsToSauterSchwabQuadrature(quadrule_types[p,q], qd), quadrule_types[p,q], p, q, SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace)
-                        # end
-                        # time_table[1, quadrule_types[p,q] + 1] += time
-                    end
-                    counts[quadrule_types[p,q] + 1] += 1
-                end
+        # time_double_forloop = @elapsed begin
+            array = []
+            threads_array = []
+            nthreads = Threads.nthreads()
+            indexes_ = [round(Int,s) for s in range(0, stop=test_elements_length_, length=nthreads+1)]
+            for i in 1:nthreads
+                SauterSchwabQuadratureCommonVertex_ = SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonVertexCustomGpuData}()
+                SauterSchwabQuadratureCommonEdge_ = SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonEdgeCustomGpuData}()
+                SauterSchwabQuadratureCommonFace_ = SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonFaceCustomGpuData}()
+                counts_ = zeros(3)
+                # @show counts_
+                
+                push!(array, [[SauterSchwabQuadratureCommonVertex_, SauterSchwabQuadratureCommonEdge_, SauterSchwabQuadratureCommonFace_], counts_, [indexes_[i]+1, indexes_[i+1]]])
             end
-        end
-        @show time_double_forloop
 
-        sauterschwab_task_1 =  sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonVertex, 
+            for i in 1:nthreads
+                # SauterSchwabQuadratureCommonVertex = array[1][1]
+                # SauterSchwabQuadratureCommonEdge = array[1][2]
+                # SauterSchwabQuadratureCommonFace = array[1][3]
+                # counts = array[2]
+                # start, stop = array[3][1], array[3][2]
+                entry = array[i]
+                job = Threads.@spawn sort_quadrule_into_custom_datastruct(entry[1][1], entry[1][2], entry[1][3], entry[2], entry[3][1], entry[3][2], pref_offet, trial_elements_length, test_elements, trial_elements, quadrule_types, qd)
+                push!(threads_array, job)
+            end
+            for i in 1:nthreads
+                wait(threads_array[i])
+            end
+
+            SauterSchwabQuadratureCommonVertex = merge_into_first!([i[1][1] for i in array])
+            SauterSchwabQuadratureCommonEdge = merge_into_first!([i[1][2] for i in array])
+            SauterSchwabQuadratureCommonFace = merge_into_first!([i[1][3] for i in array])
+
+            for i in 1:nthreads
+                counts[2] += array[i][2][1]
+                counts[3] += array[i][2][2]     
+                counts[4] += array[i][2][3]
+            end
+
+
+            counts[1] += test_elements_length_*trial_elements_length - (counts[2] + counts[3] + counts[4])
+        # end
+        # @show time_double_forloop
+
+        # time_double_forloop = @elapsed begin
+        #     for p in 1:test_elements_length_
+        #         tcell = test_elements[p + pref_offet]
+        #         for q in 1:trial_elements_length
+        #             if quadrule_types[p,q] != 0
+        #                 # time = @elapsed begin 
+        #                     # index = ((p - 1) ÷ 32 ) + 1
+        #                     # bitindex = ((p - 1) % 32 ) + 1
+        #                     # should_calc[index,q] = should_calc[index, q] & ~(1 << (bitindex - 1))
+
+        #                     # should_calc[p,q] = 0
+
+        #                     bcell = trial_elements[q]
+        #                     qrule_and_datastorages = transformHitsToSauterSchwabQuadrature(quadrule_types[p,q], qd, SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace)
+                    
+        #                     load_data_to_custum_data_for_gpu!(tcell, bcell, qrule_and_datastorages, p, q)
+        #                     # end
+        #                 # time_table[1, quadrule_types[p,q] + 1] += time
+        #             end
+        #             counts[quadrule_types[p,q] + 1] += 1
+        #         end
+        #     end
+        # end
+        # @show time_double_forloop
+
+        sauterschwab_task_1 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonVertex, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
             biop, SauterSchwabQuadratureCommonVertexCustomGpuDataInstance_, writeBackStrategy, time_table, 2,
             test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
             trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
             store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonVertex, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store, elements_length_tuple)
 
-        sauterschwab_task_2 =  sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonEdge, 
+        sauterschwab_task_2 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonEdge, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
             biop, SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance_, writeBackStrategy, time_table, 3,
             test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
             trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
             store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonEdge, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store, elements_length_tuple)
 
-        sauterschwab_task_3 =  sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonFace, 
+        sauterschwab_task_3 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonFace, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
             biop, SauterSchwabQuadratureCommonFaceCustomGpuDataInstance_, writeBackStrategy, time_table, 4,
             test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix,
             trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix,
             store, length_return_matrix, size_qrule, SauterSchwabQuadratureCommonFace, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store, elements_length_tuple)
             
-        # wait(sauterschwab_task_1)
-        # wait(sauterschwab_task_2)
-        # wait(sauterschwab_task_3)
+        wait(sauterschwab_task_1)
+        wait(sauterschwab_task_2)
+        wait(sauterschwab_task_3)
     end
     
 
-    time_double_int = @elapsed begin
+    time_double_int += @elapsed begin
         sk = Threads.@spawn schedule_kernel!(
             backend, 
             length_return_matrix, size_qrule, elements_length_tuple,
@@ -510,7 +586,6 @@ function assemblechunk_body_gpu!(biop,
         )
         wait(sk)
     end
-    @show time_double_int
 
     # Threads.atomic_add!(time_table[2,1], time_double_int)
     # time_table[2,1] = time_double_int
@@ -525,11 +600,13 @@ function assemblechunk_body_gpu!(biop,
 
     end end
 
+    @show time_double_int
 
-    @show time_table[1,:]
-    @show time_table[2,:]
-    @show counts
-    @show time_to_store
+
+    # @show time_table[1,:]
+    # @show time_table[2,:]
+    # @show counts
+    # @show time_to_store
 
 end
 
