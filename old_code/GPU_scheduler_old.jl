@@ -263,3 +263,23 @@
 
 
         
+
+
+        
+
+function consumer(ch::Channel, store, length_return_matrix, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store)
+for item in ch
+        local_time = @elapsed begin
+        result_cpu, prev_range, prev_offsets, i, j = item
+        write_to_compact_matrix(result_cpu, store, length_return_matrix, prev_range, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, prev_offsets)
+        end
+        # Threads.atomic_add!(time_to_store, local_time)
+        println("consumed ",i, " ", j)
+end
+# for item in ch
+#     time_to_store += @elapsed begin
+#         result_cpu, prev_range, prev_offsets = item
+#         write_to_compact_matrix(result_cpu, store, length_return_matrix, prev_range, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, prev_offsets)
+#     end
+# end
+end

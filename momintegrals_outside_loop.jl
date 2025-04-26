@@ -237,18 +237,21 @@ function calculate_part_quadrature(Local_number_offset, igd_Integrands, vertices
 end
 
 function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCustomGpuData,
-    test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
-    biop, instances::CustomGpuData, writeBackStrategy::GpuWriteBack, time_table, index,
-    test_vert, test_tan, test_vol,
-    trail_vert, trail_tan, trail_vol,
-    store, length_return_matrix, size_qrule, SauterSchwabQuadraturetype, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, time_to_store, elements_length_tuple)
+    assembly_gpu_data, 
+    biop, instances::CustomGpuData, time_table, index,
+    elements_data,
+    store, length_return_matrix, time_to_store, elements_length_tuple, configuration)
 
+    writeBackStrategy = configuration["writeBackStrategy"]
 
     time_1 = @elapsed begin
         # backend = KernelAbstractions.get_backend(result)
         length = size(SauterSchwabQuadratureCustomGpuData.store_index)[1]
         α = biop.alpha
         γ = biop.gamma
+        
+        test_vert, test_tan, test_vol = elements_data[1], elements_data[2], elements_data[3]
+        trail_vert, trail_tan, trail_vol = elements_data[4], elements_data[5], elements_data[6]
         qps, store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = load_data_to_gpu(SauterSchwabQuadratureCustomGpuData, length, backend, instances, test_vert, trail_vert)
     end
     
@@ -257,6 +260,11 @@ function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCust
     time_2 = @elapsed begin
         qps, store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = move(backend, qps), move(backend, store_index), move(backend, ichart1_vert), move(backend, ichart2_vert), move(backend, ichart1_tan), move(backend, ichart2_tan)
 
+        
+    test_assembly_gpu_indexes = assembly_gpu_data[1]
+    trial_assembly_gpu_indexes = assembly_gpu_data[2]
+    test_assembly_gpu_values = assembly_gpu_data[3]
+    trial_assembly_gpu_values = assembly_gpu_data[4]
         sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(result, qps, 
             test_vert, trail_vert, test_tan, trail_tan, test_vol, trail_vol, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, store_index, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
@@ -266,7 +274,9 @@ function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCust
 
     
     time_to_store_ = @elapsed begin
-        write_to_compact_matrix(result, store, length_return_matrix, size_qrule, writeBackStrategy, SauterSchwabQuadraturetype, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
+        test_assembly_cpu_indexes = assembly_gpu_data[5]
+        trial_assembly_cpu_indexes = assembly_gpu_data[6]
+        write_to_compact_matrix(result, store, length_return_matrix, nothing, writeBackStrategy, SauterSchwabQuadratureCustomGpuData, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
     end
     Threads.atomic_add!(time_to_store, time_to_store_)
     

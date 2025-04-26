@@ -1,6 +1,6 @@
 include("assamble_chunk_gpu.jl") 
 using Base.Threads
-function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_functions, writeBackStrategy::GpuWriteBack, amount_of_gpus;
+function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_functions, configuration;
     storage_policy = Val{:bandedstorage},
     threading = BEAST.Threading{:single},
     # long_delays_policy = LongDelays{:compress},
@@ -9,11 +9,12 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
     Z_real, Z_imag, store = allocatestorage(operator, test_functions, trial_functions, storage_policy)
     
     split = false
-    Z = assemble_gpu!(operator, test_functions, trial_functions, writeBackStrategy, amount_of_gpus, store, threading; quadstrat, split)
-    if typeof(writeBackStrategy) == GpuWriteBackTrueInstance
+    Z = assemble_gpu!(operator, test_functions, trial_functions, configuration, store, threading; quadstrat, split)
+    if typeof(configuration["writeBackStrategy"]) == GpuWriteBackTrueInstance
         # time_read_out_matrix = @elapsed begin
             result_cpu = Array(gpu_results_cache[1])
             result_cpu = complex.(view(result_cpu, 1, :, :), view(result_cpu, 2, :, :))
+            empty!(gpu_results_cache)
             return result_cpu
         # end
     #     # @show time_read_out_matrix
@@ -40,12 +41,12 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
 end
 
 
-function assemble_gpu!(operator::BEAST.Operator, test_functions::BEAST.Space, trial_functions::BEAST.Space, writeBackStrategy::GpuWriteBack, amount_of_gpus,
+function assemble_gpu!(operator::BEAST.Operator, test_functions::BEAST.Space, trial_functions::BEAST.Space, configuration,
     store, threading::Type{BEAST.Threading{:single}};
     quadstrat=BEAST.defaultquadstrat(operator, test_functions, trial_functions),
     split = false)
     
-    assemblechunk_gpu!(operator, test_functions, trial_functions, writeBackStrategy, amount_of_gpus, store; quadstrat)
+    assemblechunk_gpu!(operator, test_functions, trial_functions, configuration, store; quadstrat)
 end
 
 # function assemble_gpu!(operator::BEAST.Operator, test_functions::BEAST.Space, trial_functions::BEAST.Space,

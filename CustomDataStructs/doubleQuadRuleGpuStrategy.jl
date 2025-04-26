@@ -8,7 +8,6 @@ struct doubleQuadRuleGpuStrategyOptimisticInstance <: doubleQuadRuleGpuStrategyO
 struct doubleQuadRuleGpuStrategyRepaireInstance <: doubleQuadRuleGpuStrategyRepaire end
 struct doubleQuadRuleGpuStrategyShouldCalculateInstance <: doubleQuadRuleGpuStrategyShouldCalculate end
 
-
 function create_should_calc(T::doubleQuadRuleGpuStrategyRepaire, size_qrule)
     return 0
 end
