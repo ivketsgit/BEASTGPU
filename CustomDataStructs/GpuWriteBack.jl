@@ -73,9 +73,9 @@ function write_to_compact_matrix(result_cpu, store, length_return_matrix, ndrang
                     m = m_[i]
                     zij = z[(i-1) * 3 + j]
                     # @show zij, m, n
-                    if m * n != 0
+                    # if m * n != 0
                         store(zij, m, n)
-                    end
+                    # end
                 end
             end
         end                 

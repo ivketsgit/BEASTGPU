@@ -4,7 +4,7 @@ using KernelAbstractions: @atomic
 using KernelAbstractions
 include("CustomDataStructs/GpuWriteBack.jl")
 
-function store_with_kernel!(result, test_assembly_gpu, trial_assembly_gpu, result_local, K, L)
+@inline function store_with_kernel!(result, test_assembly_gpu, trial_assembly_gpu, result_local, K, L)
     @unroll for k in 1:9
         quotient, remainder  = divrem(k-1, 3)
         # @print("\n K = ", K, " L = ", L)
@@ -13,7 +13,7 @@ function store_with_kernel!(result, test_assembly_gpu, trial_assembly_gpu, resul
     end
 end
 
-function store_with_kernel_splits!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, igd_Integrands, K, L, T::GpuWriteBackTrue, Global_number)
+@inline function store_with_kernel_splits!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, igd_Integrands, K, L, T::GpuWriteBackTrue, Global_number)
     @unroll for k in 0:8
         remainder, quotient = divrem(k, 3)
         # @print("\n quotient = ", quotient, " remainder = ",remainder, "   K = ",  K, " L = ", L, " igd_Integrands[k * 2 + 1] = ",igd_Integrands[k * 2 + 1] , " igd_Integrands[k * 2 + 2] = ", igd_Integrands[k * 2 + 2])
@@ -23,14 +23,14 @@ function store_with_kernel_splits!(result, test_assembly_gpu_indexes, trial_asse
     end
 end
 
-function store_with_kernel_splits!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, igd_Integrands, K, L, T::GpuWriteBackFalse, Global_number)
+@inline function store_with_kernel_splits!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, igd_Integrands, K, L, T::GpuWriteBackFalse, Global_number)
     @unroll for k in 1:9
         remainder, quotient = divrem(k - 1, 3)
         result[(Global_number - 1) >> 8 + 1, k] = (igd_Integrands[(k-1) * 2 + 1] + igd_Integrands[(k-1) * 2 + 2] * im)  * test_assembly_gpu_values[quotient + 1, K] * trial_assembly_gpu_values[remainder + 1, L]
     end
 end
 
-function store_with_kernel_splits_!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, igd_Integrands, K, L, T::GpuWriteBackFalse, Global_number)
+@inline function store_with_kernel_splits_!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, igd_Integrands, K, L, T::GpuWriteBackFalse, Global_number)
     @unroll for k in 1:5
         remainder, quotient = divrem(k - 1, 3)
         k_ = k - 1 
@@ -44,7 +44,7 @@ function store_with_kernel_splits_!(result, test_assembly_gpu_indexes, trial_ass
     end
 end
 
-function store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, R1,R2,R3,R4,R5,R6,R7,R8,R9, T::GpuWriteBackTrue)
+@inline function store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, R1,R2,R3,R4,R5,R6,R7,R8,R9, T::GpuWriteBackTrue)
     @atomic result[1, test_assembly_gpu_indexes[1, K], trial_assembly_gpu_indexes[1, L]] += real(R1) * test_assembly_gpu_values[1, K] * trial_assembly_gpu_values[1, L]
     @atomic result[2, test_assembly_gpu_indexes[1, K], trial_assembly_gpu_indexes[1, L]] += imag(R1) * test_assembly_gpu_values[1, K] * trial_assembly_gpu_values[1, L]
     
@@ -74,6 +74,17 @@ function store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_as
 
 end
 
+@inline function store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, P, T::GpuWriteBackTrue)
+    @unroll for k in 1:9
+        remainder, quotient = divrem(k - 1, 3)
+        remainder += 1
+        quotient  += 1
+
+        @atomic result[1, test_assembly_gpu_indexes[remainder, K], trial_assembly_gpu_indexes[quotient, L]] += real(P[k]) * test_assembly_gpu_values[remainder, K] * trial_assembly_gpu_values[quotient, L]
+        @atomic result[2, test_assembly_gpu_indexes[remainder, K], trial_assembly_gpu_indexes[quotient, L]] += imag(P[k]) * test_assembly_gpu_values[remainder, K] * trial_assembly_gpu_values[quotient, L]
+    end
+end
+
 @inline function store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, R1,R2,R3,R4,R5,R6,R7,R8,R9, T::GpuWriteBackFalse)
     k = K - x_offset
     l = L - y_offset
@@ -86,6 +97,16 @@ end
     result[k, l, 7] = R7 * test_assembly_gpu_values[3, K] * trial_assembly_gpu_values[1, L]
     result[k, l, 8] = R8 * test_assembly_gpu_values[3, K] * trial_assembly_gpu_values[2, L]
     result[k, l, 9] = R9 * test_assembly_gpu_values[3, K] * trial_assembly_gpu_values[3, L]
+end
+
+@inline function store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, P, T::GpuWriteBackFalse)
+    k = K - x_offset
+    l = L - y_offset
+    @unroll for i in 1:3
+        @unroll for j in 1:3
+            result[k, l, (i - 1)*3 + j] = P[(i - 1)*3 + j] * test_assembly_gpu_values[i, K] * trial_assembly_gpu_values[j, L]
+        end
+    end
 end
 
 # function store_with_kernel_register!(result, test_assembly_gpu, trial_assembly_gpu, K, L, R1,R2,R3,R4,R5,R6,R7,R8,R9, T::GpuWriteBackFalse)

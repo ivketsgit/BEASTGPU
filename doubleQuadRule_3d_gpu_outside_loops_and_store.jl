@@ -79,16 +79,25 @@ end
     K = get_index(T, K, L, store_index, true) + x_offset
     L = get_index(T, K, L, store_index, false) + y_offset
 
+    P = @private ComplexF64 (9)
+    for i in 1:9
+        P[i] = 0.0
+    end
+
     @inbounds begin
-        R1 = 0
-        R2 = 0
-        R3 = 0
-        R4 = 0
-        R5 = 0
-        R6 = 0
-        R7 = 0
-        R8 = 0
-        R9 = 0
+        # R1 = 0
+        # R2 = 0
+        # R3 = 0
+        # R4 = 0
+        # R5 = 0
+        # R6 = 0
+        # R7 = 0
+        # R8 = 0
+        # R9 = 0
+
+        # R = 0
+        # j_αG = 0
+        # j_αG_womps_values = 0
         
         @unroll for I in 1:3
             @unroll for J in 1:4
@@ -99,23 +108,31 @@ end
 
                 j_αG = calc_j_αG(α, womps_weights[K, I], wimps_weights[L, J], R, γ, T, should_calc, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type)
 
-                j_αG_womps_values = j_αG * womps_values[K, I, 1]
-                R1 += j_αG_womps_values * wimps_values[L, J, 1]
-                R2 += j_αG_womps_values * wimps_values[L, J, 2]
-                R3 += j_αG_womps_values * wimps_values[L, J, 3]
+                # j_αG_womps_values = j_αG * womps_values[K, I, 1]
+                # R1 += j_αG_womps_values * wimps_values[L, J, 1]
+                # R2 += j_αG_womps_values * wimps_values[L, J, 2]
+                # R3 += j_αG_womps_values * wimps_values[L, J, 3]
 
-                j_αG_womps_values = j_αG * womps_values[K, I, 2]
-                R4 += j_αG_womps_values * wimps_values[L, J, 1]
-                R5 += j_αG_womps_values * wimps_values[L, J, 2]
-                R6 += j_αG_womps_values * wimps_values[L, J, 3]
+                # j_αG_womps_values = j_αG * womps_values[K, I, 2]
+                # R4 += j_αG_womps_values * wimps_values[L, J, 1]
+                # R5 += j_αG_womps_values * wimps_values[L, J, 2]
+                # R6 += j_αG_womps_values * wimps_values[L, J, 3]
 
-                j_αG_womps_values = j_αG * womps_values[K, I, 3]
-                R7 += j_αG_womps_values * wimps_values[L, J, 1]
-                R8 += j_αG_womps_values * wimps_values[L, J, 2]
-                R9 += j_αG_womps_values * wimps_values[L, J, 3]
+                # j_αG_womps_values = j_αG * womps_values[K, I, 3]
+                # R7 += j_αG_womps_values * wimps_values[L, J, 1]
+                # R8 += j_αG_womps_values * wimps_values[L, J, 2]
+                # R9 += j_αG_womps_values * wimps_values[L, J, 3]
+                @unroll for i in 1:3
+                    j_αG_womps_values = j_αG * womps_values[K, I, i]
+                    @unroll for j in 1:3
+                        P[(i - 1) * 3 + j] += j_αG_womps_values * wimps_values[L, J, j]
+                    end
+                end
             end
         end
-        store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, R1,R2,R3,R4,R5,R6,R7,R8,R9, T2)
+        store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, P, T2)
+        # store_with_kernel_splits!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, P, T2)
+        # store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, R1,R2,R3,R4,R5,R6,R7,R8,R9, T2)
     end
 end
 

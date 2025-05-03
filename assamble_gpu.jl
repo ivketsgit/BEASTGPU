@@ -7,9 +7,10 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
         quadstrat=BEAST.defaultquadstrat(operator, test_functions, trial_functions))
 
     Z_real, Z_imag, store = allocatestorage(operator, test_functions, trial_functions, storage_policy)
+    # Z_, store = allocatestorage(operator, test_functions, trial_functions, storage_policy)
     
     split = false
-    Z = assemble_gpu!(operator, test_functions, trial_functions, configuration, store, threading; quadstrat, split)
+    assemble_gpu!(operator, test_functions, trial_functions, configuration, store, threading; quadstrat, split)
     if typeof(configuration["writeBackStrategy"]) == GpuWriteBackTrueInstance
         # time_read_out_matrix = @elapsed begin
             result_cpu = Array(gpu_results_cache[1])
@@ -37,6 +38,7 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
     end
     real_part = Z_real()
     imag_part = Z_imag
+    # Z_()
     return real_part + imag_part *im
 end
 
@@ -106,14 +108,21 @@ function allocatestorage(operator::BEAST.AbstractOperator, test_functions, trial
         numfunctions(test_functions),
         numfunctions(trial_functions),
     )
+    # Z = Matrix{ComplexF64}(undef,
+    #     numfunctions(test_functions),
+    #     numfunctions(trial_functions),
+    # )
+    # fill!(Z, 0)
     fill!(Z_real, 0)
     fill!(Z_imag, 0)
     # store(v,m,n) = (Z[m,n] += v)
     store(v, m, n) = begin
         @atomic Z_real[m, n] += real(v)
         @atomic Z_imag[m, n] += imag(v)
+        # Z[m, n] += v
     end
     return ()->Z_real, Z_imag, store
+    # return ()->Z, store
 end
 
 

@@ -42,47 +42,42 @@ function calc_index_bitshifts(number)
 end
 
 # const warpsize = 32
-function load_global_memory_into_shared_memory!(h, Local_number_offset, store_index_, qps, test_vert, trail_vert, test_tan, trail_tan, test_vol, trail_vol, vertices1, vertices2, tangents1, tangents2, qps_, test_vert_, trail_vert_, test_tan_, trail_tan_, test_vol_, trail_vol_, ichart1_vert_, ichart2_vert_, ichart1_tan_, ichart2_tan_)
+function load_global_memory_into_shared_memory!(h, Local_number_offset, store_index_, test_vert, trail_vert, test_tan, trail_tan, test_vol, trail_vol, vertices1, vertices2, tangents1, tangents2, test_vert_, trail_vert_, test_tan_, trail_tan_, test_vol_, trail_vol_, ichart1_vert_, ichart2_vert_, ichart1_tan_, ichart2_tan_)
     warpsize = 32
     p = store_index_[h, 1]
     q = store_index_[h, 2]
     # if h == 1 && Local_number_offset == 0
     #     @print("\n ", p, " ", q)
     # end
-    if  Local_number_offset == 0 * warpsize
-        @unroll for unroll in 1:4
-            qps[unroll, 1] = qps_[h, unroll, 1]
-            qps[unroll, 2] = qps_[h, unroll, 2]
-        end
-    elseif Local_number_offset == 1 * warpsize
+    if Local_number_offset == 0 * warpsize
         @unroll for unroll in 1:3
             @unroll for unroll_ in 1:2
                 vertices1[unroll, unroll_] = ichart1_vert_[h, unroll, unroll_]
                 vertices2[unroll, unroll_] = ichart2_vert_[h, unroll, unroll_]
             end
         end
-    elseif Local_number_offset == 2 * warpsize
+    elseif Local_number_offset == 1 * warpsize
         @unroll for unroll in 1:2
             @unroll for unroll_ in 1:2
                 tangents1[unroll, unroll_] = ichart1_tan_[h, unroll, unroll_]
                 tangents2[unroll, unroll_] = ichart2_tan_[h, unroll, unroll_]
             end
         end
-    elseif Local_number_offset == 3 * warpsize
+    elseif Local_number_offset == 2 * warpsize
         @unroll for unroll in 1:3
             @unroll for unroll_ in 1:3
                 test_vert[unroll, unroll_] = test_vert_[p, unroll, unroll_]
                 trail_vert[unroll, unroll_] = trail_vert_[q, unroll, unroll_]
             end
         end
-    elseif Local_number_offset == 4 * warpsize
+    elseif Local_number_offset == 3 * warpsize
         @unroll for unroll in 1:3
             @unroll for unroll_ in 1:2
                 test_tan[unroll, unroll_] = test_tan_[p, unroll, unroll_]
                 trail_tan[unroll, unroll_] = trail_tan_[q, unroll, unroll_]
             end
         end
-    elseif Local_number_offset == 5 * warpsize
+    elseif Local_number_offset == 4 * warpsize
         test_vol[1] = test_vol_[p]
         trail_vol[1] = trail_vol_[q]
     end
@@ -99,7 +94,7 @@ function load_data_1(cpu_data_, length, length_1, length_2, backend)
             end
         end
     end
-    @assert !any(isnan, data)
+    # @assert !any(isnan, data)
     return move(backend, data)
 end
 
@@ -112,19 +107,20 @@ function load_data_2(cpu_data_, length, length_1, length_2, backend)
             end
         end
     end
-    @assert !any(isnan, data)
-    return data
+    # @assert !any(isnan, data)
+    return move(backend, data)
+    # return data
 end
 
 function load_data_to_gpu(cpu_data, length, backend, T, test_vert, trail_vert) 
-    qps = load_data_2(cpu_data.qps, length, 4, 2, backend)
+    # qps = load_data_2(cpu_data.qps, length, 4, 2, backend)
     store_index = Matrix{Int64}(undef,length,2)
     
     for i in 1:length
         store_index[i,:] = cpu_data.store_index[i][:]
     end
 
-    @assert !any(isnan, store_index)
+    # @assert !any(isnan, store_index)
     store_index = move(backend, store_index)
 
 
@@ -135,21 +131,21 @@ function load_data_to_gpu(cpu_data, length, backend, T, test_vert, trail_vert)
         ichart1_tan = load_data_2(cpu_data.ichart1_tan, length, 2, 2, backend)
         ichart2_tan = load_data_2(cpu_data.ichart2_tan, length, 2, 2, backend)
     else
-        ichart1_vert = KernelAbstractions.zeros(backend, Float64, (length, 3, 2))
-        ichart2_vert = KernelAbstractions.zeros(backend, Float64, (length, 3, 2))
-        ichart1_tan = KernelAbstractions.zeros(backend, Float64, (length, 2, 2))
-        ichart2_tan = KernelAbstractions.zeros(backend, Float64, (length, 2, 2))
+        ichart1_vert = KernelAbstractions.allocate(backend, Float64, (length, 3, 2))
+        ichart2_vert = KernelAbstractions.allocate(backend, Float64, (length, 3, 2))
+        ichart1_tan = KernelAbstractions.allocate(backend, Float64, (length, 2, 2))
+        ichart2_tan = KernelAbstractions.allocate(backend, Float64, (length, 2, 2))
         
         vertices1_ = move(backend, Matrix{Float64}([1.0 0.0; 0.0 1.0; 0.0 0.0]))
         vertices2_ = move(backend, Matrix{Float64}([1.0 0.0; 0.0 1.0; 0.0 0.0]))
     
         test_toll!(backend, 512)(ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, vertices1_, vertices2_, store_index, test_vert, trail_vert, T, ndrange = length)
-        KernelAbstractions.synchronize(backend)
+        
     end
 
     
 
-    return qps, store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan
+    return store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan
 end
 
 @kernel function sauterschwab_parameterized_gpu_outside_loop_kernel!(result,
@@ -165,12 +161,16 @@ end
     h, i, j, k, l, Local_number_offset = calc_index_bitshifts(Global_number)
     
     igd_Integrands = @localmem Float64 (4*4*4*4* 9 * 2)
+    # qps = @localmem Float64 (4,2)
     
     @unroll for unroll in 1:18
         igd_Integrands[Local_number_offset * 9 * 2 + unroll] = 0
     end
+    # @unroll for unroll in 1:4
+    #     qps[unroll, 1] = qps_[un]
+    #     qps[unroll, 2] = 0.0
+    # end
 
-    qps = @localmem Float64 (4,2)
     vertices1 = @localmem Float64 (3,2)
     vertices2 = @localmem Float64 (3,2)
     tangents1 = @localmem Float64 (2,2)
@@ -182,14 +182,14 @@ end
     test_vol = @localmem Float64 (1)
     trail_vol = @localmem Float64 (1)
 
-    load_global_memory_into_shared_memory!(h, Local_number_offset, store_index_, qps, test_vert, trail_vert, test_tan, trail_tan, test_vol, trail_vol, vertices1, vertices2, tangents1, tangents2, qps_, test_vert_, trail_vert_, test_tan_, trail_tan_, test_vol_, trail_vol_, ichart1_vert_, ichart2_vert_, ichart1_tan_, ichart2_tan_)
+    load_global_memory_into_shared_memory!(h, Local_number_offset, store_index_, test_vert, trail_vert, test_tan, trail_tan, test_vol, trail_vol, vertices1, vertices2, tangents1, tangents2, test_vert_, trail_vert_, test_tan_, trail_tan_, test_vol_, trail_vol_, ichart1_vert_, ichart2_vert_, ichart1_tan_, ichart2_tan_)
     
     @synchronize
-    η1 = qps[i, 1]
-    η2 = qps[j, 1]
-    η3 = qps[k, 1]
-    ξ =  qps[l, 1]
-    w = qps[i, 2] * qps[j, 2] * qps[k, 2] * qps[l, 2]
+    η1 = qps_[i, 1]
+    η2 = qps_[j, 1]
+    η3 = qps_[k, 1]
+    ξ =  qps_[l, 1]
+    w = qps_[i, 2] * qps_[j, 2] * qps_[k, 2] * qps_[l, 2]
     
     calculate_part_quadrature(Local_number_offset, igd_Integrands, vertices1, tangents1, test_vert, test_tan, vertices2, tangents2, trail_vert, trail_tan, test_vol, trail_vol, γ, α, η1, η2, η3, ξ, w, T)
 
@@ -236,7 +236,7 @@ function calculate_part_quadrature(Local_number_offset, igd_Integrands, vertices
     Integrand__mul_gpu_attomic!(Local_number_offset, igd_Integrands,(1 - ξ, ξ * η1 * (1 - η2)), (1 - (ξ - ξ * η1 * η2 * η3), ξ * η1 * (1 - η2 * η3)), vertices1, tangents1, test_vert, test_tan, vertices2, tangents2, trail_vert, trail_tan, test_vol, trail_vol, γ, α, mul)
 end
 
-function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCustomGpuData,
+function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCustomGpuData, qps_,
     assembly_gpu_data, 
     biop, instances::CustomGpuData, time_table, index,
     elements_data,
@@ -252,25 +252,46 @@ function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCust
         
         test_vert, test_tan, test_vol = elements_data[1], elements_data[2], elements_data[3]
         trail_vert, trail_tan, trail_vol = elements_data[4], elements_data[5], elements_data[6]
-        qps, store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = load_data_to_gpu(SauterSchwabQuadratureCustomGpuData, length, backend, instances, test_vert, trail_vert)
+        store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = load_data_to_gpu(SauterSchwabQuadratureCustomGpuData, length, backend, instances, test_vert, trail_vert)
+        @show qps_
+        # @show size(qps_)
+        @show typeof(qps_)
+        # @show 
+        # @show qps_[:]
+        # for i in 1:4
+        #     @show qps_[i]
+        # end
+        qps_vector = getfield(qps_, 1)
+        q = Array{Float64}(undef,4,2)
+        for i in 1:4
+            for j in 1:2
+                q[i,j] = qps_vector[i][j]
+            end
+        end
+        qps = move(backend, q) 
     end
+    
+    GC.@preserve qps store_index ichart1_vert ichart2_vert ichart1_tan ichart2_tan begin
     
     result = create_results_matrix_gpu(backend, length_return_matrix, elements_length_tuple, writeBackStrategy, SauterSchwabQuadratureCustomGpuData)
 
     time_2 = @elapsed begin
-        qps, store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = move(backend, qps), move(backend, store_index), move(backend, ichart1_vert), move(backend, ichart2_vert), move(backend, ichart1_tan), move(backend, ichart2_tan)
+        # qps, store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = move(backend, qps), move(backend, store_index), move(backend, ichart1_vert), move(backend, ichart2_vert), move(backend, ichart1_tan), move(backend, ichart2_tan)
 
         
-    test_assembly_gpu_indexes = assembly_gpu_data[1]
-    trial_assembly_gpu_indexes = assembly_gpu_data[2]
-    test_assembly_gpu_values = assembly_gpu_data[3]
-    trial_assembly_gpu_values = assembly_gpu_data[4]
+        test_assembly_gpu_indexes = assembly_gpu_data[1]
+        trial_assembly_gpu_indexes = assembly_gpu_data[2]
+        test_assembly_gpu_values = assembly_gpu_data[3]
+        trial_assembly_gpu_values = assembly_gpu_data[4]
+        KernelAbstractions.synchronize(backend)
         sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(result, qps, 
             test_vert, trail_vert, test_tan, trail_tan, test_vol, trail_vol, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, store_index, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
             γ, α, instances, writeBackStrategy, ndrange = (4 * 4 * 4 * 4 * length))
         KernelAbstractions.synchronize(backend)
     end
+
+    end 
 
     
     time_to_store_ = @elapsed begin
