@@ -13,7 +13,7 @@ include("utils/backend.jl")
 
 
 
-writeBackStrategy = GpuWriteBackFalseInstance()
+writeBackStrategy = GpuWriteBackTrueInstance()
 #warmup
 # Γ = meshcuboid(1.0,1.0,1.0,1.0)
 # dimension(Γ)
@@ -27,13 +27,13 @@ const MiB = 2^20
 const GiB = 2^30
 configuration = Dict()
 configuration["writeBackStrategy"] = writeBackStrategy
-configuration["amount_of_gpus"] = 2
+configuration["amount_of_gpus"] = 1
 configuration["total_GPU_budget"] = 3 * GiB
 configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = doubleQuadRuleGpuStrategyShouldCalculateInstance()
-configuration["ShouldCalcInstance"] = ShouldCalcFalseInstance()
-configuration["GPU_budget_pipeline_result"] = 6 * GiB
+configuration["ShouldCalcInstance"] = ShouldCalcTrueInstance()
+configuration["GPU_budget_pipeline_result"] = 12 * GiB
 
-inv_density_factor = 1
+inv_density_factor = 40
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
 # Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor; generator=:gmsh)
 X = lagrangec0d1(Γ) 
@@ -42,19 +42,19 @@ filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
 
 
 # @show dimension(Γ)
-vertices = skeleton(Γ, 0)
-num_nodes = length(vertices)
-@show num_nodes
+# vertices = skeleton(Γ, 0)
+# num_nodes = length(vertices)
+# @show num_nodes
 
 # let time = @elapsed begin
-#     # @show @which assemble(S,X,X)
-#         M_ref = BEAST.assemble(S,X,X)
-#     end
-#     # open(filename, "w") do io
-#     #     serialize(io, M_ref)
-#     # end
-#     println("Elapsed time control: ", time)
-#     println("")
+#    # @show @which assemble(S,X,X)
+#        M_ref = BEAST.assemble(S,X,X)
+#    end
+#    open(filename, "w") do io
+#        serialize(io, M_ref)
+#    end
+#    println("Elapsed time control: ", time)
+#    println("")
 # end
 
 let time = @elapsed begin
