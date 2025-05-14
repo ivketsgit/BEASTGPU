@@ -33,7 +33,7 @@ configuration["ShouldCalcInstance"] = ShouldCalcTrueInstance()
 configuration["GPU_budget_pipeline_result"] = 24 * GiB
 configuration["amount_of_producers"] = 16
 
-inv_density_factor = 40
+inv_density_factor = 27
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
 # Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor; generator=:gmsh)
 X = lagrangec0d1(Γ) 
