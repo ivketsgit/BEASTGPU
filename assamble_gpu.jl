@@ -31,40 +31,51 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
         # return
         # time_read_out_matrix = @elapsed begin
 
-            time_to_transfer_originel = @elapsed begin
-                result_cpu = Array(gpu_results_cache[1])
-            end
-            @show time_to_transfer_originel
 
             # time_to_transfer_results_2 = @elapsed begin
                 time_gpu_array = @elapsed begin
                     gpu_array = gpu_results_cache[1]
                 end
                 @show time_gpu_array
+
+                GiB = prod(size(gpu_array)) * sizeof(Float64) / 2^30
+                println("GiB = ", GiB)
+
+                
+                time_to_transfer_originel = @elapsed begin
+                    result_cpu = Array(gpu_array)
+                end
+                @show time_to_transfer_originel
+                println("GiB/s = ", GiB / time_to_transfer_originel)
+
                 
                 time_allocate = @elapsed begin
                     # result_cpu = Array{Float64}(undef, (2, 38402, 38402))
                     result_cpu = Array{Float64}(undef, size(gpu_array))
                 end
                 @show time_allocate
+                    
 
                 
                 time_to_transfer_with_copy = @elapsed begin
                     copyto!(result_cpu, gpu_array)
                 end
                 @show time_to_transfer_with_copy
+                println("GiB/s = ", GiB / time_to_transfer_with_copy)
 
                 
                 time_to_transfer_with_copy_KA_1 = @elapsed begin
                     KernelAbstractions.copyto!(CUDABackend(), result_cpu, gpu_array)
                 end
                 @show time_to_transfer_with_copy_KA_1
+                println("GiB/s = ", GiB / time_to_transfer_with_copy_KA_1)
 
                 
                 time_to_transfer_with_copy_KA_2 = @elapsed begin
                     KernelAbstractions.copyto!(CPU(), result_cpu, gpu_array)
                 end
                 @show time_to_transfer_with_copy_KA_2
+                println("GiB/s = ", GiB / time_to_transfer_with_copy_KA_2)
 
             # end
             # @show time_to_transfer_results_2

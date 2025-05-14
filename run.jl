@@ -86,31 +86,6 @@ let time = @elapsed begin
     println("")
 end
 
-# function extract_atomic_values(value)
-#     if all(x -> isa(x, Atomic{Float64}), value)
-#         # Case 1: Flat vector of Atomic{Float64}
-#         return mean([x[] for x in value][2:end])
-#     elseif all(x -> isa(x, Vector{Atomic{Float64}}), value)
-#         # Case 2: Vector of Vectors (2D matrix-like structure)
-#         return [mean([x[] for x in row][2:end]) for row in value]
-#     elseif value == [] 
-#         # Case 3: Empty vector
-#         @show value
-#         return []
-#     elseif all(x -> isa(x, Float64), value)
-#         # Case 3: Empty vector
-#         @show value
-#         @show typeof(value)
-
-#         @show value[2:end]
-#         return mean(value[2:end])
-#     elseif all(x -> isa(x, Vector{Float64}), value)
-#         # Case 3: Empty vector
-#         return mean(value[2:end])
-#     else
-#         error("Unsupported structure: expected Vector{Atomic{Float64}} or Vector{Vector{Atomic{Float64}}}")
-#     end
-# end
 
 # function extract_atomic_values(value)
 #     @show value
