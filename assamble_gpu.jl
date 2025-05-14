@@ -43,7 +43,8 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
                 @show time_gpu_array
                 
                 time_allocate = @elapsed begin
-                    result_cpu = Array{Float64}(undef, (2, 38402, 38402))
+                    # result_cpu = Array{Float64}(undef, (2, 38402, 38402))
+                    result_cpu = Array{Float64}(undef, size(gpu_array))
                 end
                 @show time_allocate
 
@@ -54,10 +55,16 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
                 @show time_to_transfer_with_copy
 
                 
-                time_to_transfer_with_copy_KA = @elapsed begin
+                time_to_transfer_with_copy_KA_1 = @elapsed begin
                     KernelAbstractions.copyto!(CUDABackend(), result_cpu, gpu_array)
                 end
-                @show time_to_transfer_with_copy_KA
+                @show time_to_transfer_with_copy_KA_1
+
+                
+                time_to_transfer_with_copy_KA_2 = @elapsed begin
+                    KernelAbstractions.copyto!(CPU(), result_cpu, gpu_array)
+                end
+                @show time_to_transfer_with_copy_KA_2
 
             # end
             # @show time_to_transfer_results_2
@@ -82,7 +89,7 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
             # @info "time to create results as complex numbers = $time_make_complex"
             if isdefined(Main, :time_logger)
                 
-                log_time(time_logger, "transfer results to CPU", time_to_transfer_originel)
+                # log_time(time_logger, "transfer results to CPU", time_to_transfer_originel)
                 log_time(time_logger, "create results as complex numbers", time_make_complex)
             end
             empty!(gpu_results_cache)

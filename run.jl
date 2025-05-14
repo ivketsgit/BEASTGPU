@@ -112,36 +112,42 @@ end
 #     end
 # end
 
-function extract_atomic_values(value)
-    if all(x -> isa(x, Atomic{Float64}), value)
-        # Case 1: Flat vector of Atomic{Float64}
-        return mean([x[] for x in value][:])
-    elseif all(x -> isa(x, Vector{Atomic{Float64}}), value)
-        # Case 2: Vector of Vectors (2D matrix-like structure)
-        return [mean([x[] for x in row][:]) for row in value]
-    elseif value == [] 
-        # Case 3: Empty vector
-        return []
-    elseif all(x -> isa(x, Float64), value)
-        # Case 3: Empty vector
-        return mean(value[:])
-    elseif all(x -> isa(x, Vector{Float64}), value)
-        # Case 3: Empty vector
-        return mean(value[:])
-    else
-        error("Unsupported structure: expected Vector{Atomic{Float64}} or Vector{Vector{Atomic{Float64}}}")
-    end
-end
+# function extract_atomic_values(value)
+#     @show value
+#     if value == []
+#         # Case 3: Empty vector
+#         return []
+#     elseif all(x -> isa(x, Atomic{Float64}), value)
+#         # Case 1: Flat vector of Atomic{Float64}
+#         @show value
+#         return mean([x[] for x in value][:])
+#     elseif all(x -> isa(x, Vector{Atomic{Float64}}), value)
+#         # Case 2: Vector of Vectors (2D matrix-like structure)
+#         return [mean([x[] for x in row][:]) for row in value]
+#     elseif all(x -> isa(x, Float64), value)
+#         # Case 3: Empty vector
+#         return mean(value[:])
+#     elseif all(x -> isa(x, Vector{Float64}), value)
+#         # Case 3: Empty vector
+#         return mean(value[:])
+#     else
+#         @show value
+#         @show typeof(value)
+#         error("Unsupported structure: expected Vector{Atomic{Float64}} or Vector{Vector{Atomic{Float64}}}")
+#     end
+# end
 
-let keys = ["time overhead", "time to determin the quadrule", "calculate the double int", "transfer quadrule to CPU", "calculate double for loop", "calculate SauterSchwab", "time_to_store", "transfer results to CPU", "create results as complex numbers", "time_sauter_schwab_overhead_and_test_toll 2", "time_sauter_schwab_overhead_and_test_toll 3", "time_sauter_schwab_overhead_and_test_toll 4"]
-    for key in keys
-        value = time_logger[key]
-        means = extract_atomic_values(value)
+# let keys = ["time overhead", "time to determin the quadrule", "calculate the double int", "transfer quadrule to CPU", "calculate double for loop", "calculate SauterSchwab", "time_to_store", "transfer results to CPU", "create results as complex numbers", "time_sauter_schwab_overhead_and_test_toll 2", "time_sauter_schwab_overhead_and_test_toll 3", "time_sauter_schwab_overhead_and_test_toll 4"]
+#     for key in keys
+#         if haskey(time_logger, key)
+#             value = time_logger[key]
+#             means = extract_atomic_values(value)
 
-        println(key, "     ", means)
-        # @show value
-    end
-end
+#             println(key, "     ", means)
+#             # @show value
+#         end
+#     end
+# end
 
 # let time = @elapsed begin
 #         M = assemble_gpu(S,X,X,writeBackStrategy,2)
@@ -152,18 +158,18 @@ end
 # @show M_ref
 # @show M
 
-M_ref = open(filename, "r") do io
-    deserialize(io)
-end
+# M_ref = open(filename, "r") do io
+#     deserialize(io)
+# end
 
+# # println("")
+
+# global_logger(ConsoleLogger(stderr, Logging.Info)) 
+# # error_matrix = abs.(M_ref .- M)
+# # @show maximum(error_matrix)
+# error_matrix = abs.(M_ref .- M_ref_gpu)
 # println("")
-
-global_logger(ConsoleLogger(stderr, Logging.Info)) 
-# error_matrix = abs.(M_ref .- M)
 # @show maximum(error_matrix)
-error_matrix = abs.(M_ref .- M_ref_gpu)
-println("")
-@show maximum(error_matrix)
 
  
 # error_matrix = abs.(M_ref_gpu .- M)
