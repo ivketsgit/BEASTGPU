@@ -8,14 +8,21 @@ abstract type GpuWriteBackFalse <: GpuWriteBack end
 struct GpuWriteBackTrueInstance <: GpuWriteBackTrue end
 struct GpuWriteBackFalseInstance <: GpuWriteBackFalse end
 
-const gpu_results_cache = IdDict()
+global gpu_cache_lock = ReentrantLock()
+global gpu_results_cache = IdDict{Int, AbstractArray{Float64, 3}}()
 function create_results_matrix_gpu(backend, length_return_matrix, size_qrule, T::GpuWriteBackTrue, any)
-    if haskey(gpu_results_cache, 1)
-        return gpu_results_cache[1]
-    else
-        gpu_results_cache[1] = KernelAbstractions.zeros(backend, Float64, 2, length_return_matrix, length_return_matrix)
-        return gpu_results_cache[1]
+    lock(gpu_cache_lock) do
+        if haskey(gpu_results_cache, 1)
+            
+        else
+            gpu_results_cache[1] = KernelAbstractions.zeros(backend, Float64, 2, length_return_matrix, length_return_matrix)
+            # t = Threads.@spawn begin
+            #     result_cpu = Array{Float64}(undef, (2, 38402, 38402))
+            #     copyto!(result_cpu, gpu_results_cache[1])
+            # end
+        end
     end
+    return gpu_results_cache[1]
     # return KernelAbstractions.zeros(backend, Float64, 2, length_return_matrix, length_return_matrix)
 end
 
@@ -94,9 +101,9 @@ function write_to_compact_matrix(gpu_matrix, store, length_return_matrix, ndrang
                     m = test_assembly_data[i, J]
                     zij = z[(j-1) * 3 + i]
                     # @show i, j, zij, m, n, J, I
-                    if m * n != 0
+                    # if m * n != 0
                         store(zij, m, n)
-                    end
+                    # end
                 end
             end
         # end

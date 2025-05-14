@@ -12,7 +12,7 @@ function _noswitch_runner()
 end
 
 # Use Any instead of Function to allow initializing with `nothing`
-const _noswitch_fn_ref = Ref{Any}(nothing)
+global _noswitch_fn_ref = Ref{Any}(nothing)
 
 
 macro noswitch(block)

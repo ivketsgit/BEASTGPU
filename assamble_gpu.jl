@@ -1,10 +1,23 @@
 include("assamble_chunk_gpu.jl") 
 using Base.Threads
+
+
+function log_time(time_logger, key::String, value)
+    if haskey(time_logger, key)
+        push!(time_logger[key], value)
+    else
+        time_logger[key] = [value]
+    end
+end
+
+
+
 function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_functions, configuration;
     storage_policy = Val{:bandedstorage},
     threading = BEAST.Threading{:single},
     # long_delays_policy = LongDelays{:compress},
         quadstrat=BEAST.defaultquadstrat(operator, test_functions, trial_functions))
+    print(".")
 
     Z_real, Z_imag, store = allocatestorage(operator, test_functions, trial_functions, storage_policy)
     # Z_, store = allocatestorage(operator, test_functions, trial_functions, storage_policy)
@@ -12,11 +25,68 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
     split = false
     assemble_gpu!(operator, test_functions, trial_functions, configuration, store, threading; quadstrat, split)
     if typeof(configuration["writeBackStrategy"]) == GpuWriteBackTrueInstance
+        # CUDA.unsafe_free!(gpu_results_cache[1])
+        # CUDA.synchronize()
+        # CUDA.reclaim()
+        # return
         # time_read_out_matrix = @elapsed begin
-            result_cpu = Array(gpu_results_cache[1])
-            result_cpu = complex.(view(result_cpu, 1, :, :), view(result_cpu, 2, :, :))
+
+            time_to_transfer_originel = @elapsed begin
+                result_cpu = Array(gpu_results_cache[1])
+            end
+            @show time_to_transfer_originel
+
+            # time_to_transfer_results_2 = @elapsed begin
+                time_gpu_array = @elapsed begin
+                    gpu_array = gpu_results_cache[1]
+                end
+                @show time_gpu_array
+                
+                time_allocate = @elapsed begin
+                    result_cpu = Array{Float64}(undef, (2, 38402, 38402))
+                end
+                @show time_allocate
+
+                
+                time_to_transfer_with_copy = @elapsed begin
+                    copyto!(result_cpu, gpu_array)
+                end
+                @show time_to_transfer_with_copy
+
+                
+                time_to_transfer_with_copy_KA = @elapsed begin
+                    KernelAbstractions.copyto!(CUDABackend(), result_cpu, gpu_array)
+                end
+                @show time_to_transfer_with_copy_KA
+
+            # end
+            # @show time_to_transfer_results_2
+
+            time_make_complex = @elapsed begin
+                N, M = size(result_cpu, 2), size(result_cpu, 3)
+                result_complex = Matrix{ComplexF64}(undef, N, M)
+
+                @threads for j in 1:M
+                    for i in 1:N
+                        result_complex[i, j] = complex(result_cpu[1, i, j], result_cpu[2, i, j])
+                    end
+                end
+                # result_complex = complex.(view(result_cpu, 1, :, :), view(result_cpu, 2, :, :))
+            end
+            # @show time_to_transfer_results, time_make_complex
+
             empty!(gpu_results_cache)
-            return result_cpu
+            GC.gc()
+            #CUDA.memory_status() 
+            # @info "time to transfer results to CPU= $time_to_transfer_results"
+            # @info "time to create results as complex numbers = $time_make_complex"
+            if isdefined(Main, :time_logger)
+                
+                log_time(time_logger, "transfer results to CPU", time_to_transfer_originel)
+                log_time(time_logger, "create results as complex numbers", time_make_complex)
+            end
+            empty!(gpu_results_cache)
+            return result_complex
         # end
     #     # @show time_read_out_matrix
     #     # time_read_out_matrix = @elapsed begin

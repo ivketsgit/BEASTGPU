@@ -112,38 +112,45 @@ function load_data_2(cpu_data_, length, length_1, length_2, backend)
     # return data
 end
 
-function load_data_to_gpu(cpu_data, length, backend, T, test_vert, trail_vert) 
+function load_data_to_gpu(cpu_data, length, backend, T, test_vert, trail_vert, index) 
     # qps = load_data_2(cpu_data.qps, length, 4, 2, backend)
-    store_index = Matrix{Int64}(undef,length,2)
-    
-    for i in 1:length
-        store_index[i,:] = cpu_data.store_index[i][:]
-    end
-
-    # @assert !any(isnan, store_index)
-    store_index = move(backend, store_index)
-
-
-       
-    if prod(size(cpu_data.ichart1_vert)) != 0
-        ichart1_vert = load_data_2(cpu_data.ichart1_vert, length, 3, 2, backend)
-        ichart2_vert = load_data_2(cpu_data.ichart2_vert, length, 3, 2, backend)
-        ichart1_tan = load_data_2(cpu_data.ichart1_tan, length, 2, 2, backend)
-        ichart2_tan = load_data_2(cpu_data.ichart2_tan, length, 2, 2, backend)
-    else
-        ichart1_vert = KernelAbstractions.allocate(backend, Float64, (length, 3, 2))
-        ichart2_vert = KernelAbstractions.allocate(backend, Float64, (length, 3, 2))
-        ichart1_tan = KernelAbstractions.allocate(backend, Float64, (length, 2, 2))
-        ichart2_tan = KernelAbstractions.allocate(backend, Float64, (length, 2, 2))
+    time_sauter_schwab_overhead_and_test_toll = @elapsed begin
+        store_index = Matrix{Int64}(undef,length,2)
         
-        vertices1_ = move(backend, Matrix{Float64}([1.0 0.0; 0.0 1.0; 0.0 0.0]))
-        vertices2_ = move(backend, Matrix{Float64}([1.0 0.0; 0.0 1.0; 0.0 0.0]))
-    
-        test_toll!(backend, 512)(ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, vertices1_, vertices2_, store_index, test_vert, trail_vert, T, ndrange = length)
+        for i in 1:length
+            store_index[i,:] .= cpu_data.store_index[i][:]
+        end
+
+        # @assert !any(isnan, store_index)
+        store_index = move(backend, store_index)
+
+
         
+        if prod(size(cpu_data.ichart1_vert)) != 0
+            ichart1_vert = load_data_2(cpu_data.ichart1_vert, length, 3, 2, backend)
+            ichart2_vert = load_data_2(cpu_data.ichart2_vert, length, 3, 2, backend)
+            ichart1_tan = load_data_2(cpu_data.ichart1_tan, length, 2, 2, backend)
+            ichart2_tan = load_data_2(cpu_data.ichart2_tan, length, 2, 2, backend)
+        else
+            ichart1_vert = KernelAbstractions.allocate(backend, Float64, (length, 3, 2))
+            ichart2_vert = KernelAbstractions.allocate(backend, Float64, (length, 3, 2))
+            ichart1_tan = KernelAbstractions.allocate(backend, Float64, (length, 2, 2))
+            ichart2_tan = KernelAbstractions.allocate(backend, Float64, (length, 2, 2))
+            
+            vertices1_ = move(backend, Matrix{Float64}([1.0 0.0; 0.0 1.0; 0.0 0.0]))
+            vertices2_ = move(backend, Matrix{Float64}([1.0 0.0; 0.0 1.0; 0.0 0.0]))
+        
+            test_toll!(backend, 512)(ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, vertices1_, vertices2_, store_index, test_vert, trail_vert, T, ndrange = length)
+            KernelAbstractions.synchronize(backend)
+        end
+
     end
+    # @info "time_sauter_schwab_overhead_and_test_toll = $(time_sauter_schwab_overhead_and_test_toll)"
 
     
+    # if isdefined(Main, :time_logger)
+    #     log_time(time_logger, "time_sauter_schwab_overhead_and_test_toll $(index)", time_to_transfer_results)
+    # end
 
     return store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan
 end
@@ -252,15 +259,8 @@ function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCust
         
         test_vert, test_tan, test_vol = elements_data[1], elements_data[2], elements_data[3]
         trail_vert, trail_tan, trail_vol = elements_data[4], elements_data[5], elements_data[6]
-        store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = load_data_to_gpu(SauterSchwabQuadratureCustomGpuData, length, backend, instances, test_vert, trail_vert)
-        @show qps_
-        # @show size(qps_)
-        @show typeof(qps_)
-        # @show 
-        # @show qps_[:]
-        # for i in 1:4
-        #     @show qps_[i]
-        # end
+        store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = load_data_to_gpu(SauterSchwabQuadratureCustomGpuData, length, backend, instances, test_vert, trail_vert, index)
+
         qps_vector = getfield(qps_, 1)
         q = Array{Float64}(undef,4,2)
         for i in 1:4
@@ -283,7 +283,7 @@ function sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCust
         trial_assembly_gpu_indexes = assembly_gpu_data[2]
         test_assembly_gpu_values = assembly_gpu_data[3]
         trial_assembly_gpu_values = assembly_gpu_data[4]
-        KernelAbstractions.synchronize(backend)
+
         sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(result, qps, 
             test_vert, trail_vert, test_tan, trail_tan, test_vol, trail_vol, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, store_index, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 

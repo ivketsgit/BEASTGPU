@@ -253,8 +253,7 @@ function sort_quadrule_into_custom_datastruct(SauterSchwabQuadratureCommonVertex
     # @show counts
     # @show start, stop
 
-
-    for p in start + pref_offet:stop + pref_offet
+    for p in start:stop
         # tcell = test_elements[p]
         for q in 1:trial_elements_length
             qt = quadrule_types[p, q]
@@ -270,14 +269,8 @@ function sort_quadrule_into_custom_datastruct(SauterSchwabQuadratureCommonVertex
                 # @noswitch begin
                     
                     cpu_data = transformHitsToSauterSchwabQuadrature(qt, SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace)
-                    # add_element(cpu_data, SVector{4}(map(t -> SVector{2}(t...), qrule.qps)), SVector{2, Int64}(p, q)) 
-                    # @show typeof(qrule.qps), qrule.qps, qrule.qps..., [qrule.qps]
-                    
-                    # @show cpu_data.qps
-                    # push!(cpu_data.qps, qrule.qps)
-                    # @show cpu_data.qps
-                    # @show typeof([p, q])
-                    add_element(cpu_data, [p, q])
+                    add_element(cpu_data, (p, q))
+                end
                 # end
                 # @show qrule.qps
                 # @show typeof(qrule.qps)
@@ -288,13 +281,33 @@ function sort_quadrule_into_custom_datastruct(SauterSchwabQuadratureCommonVertex
                 # end
 
 
-                # end
-                # time_table[1, quadrule_types[p,q] + 1] += time
-                # if quadrule_types[p,q] != 1 && quadrule_types[p,q] != 2 && quadrule_types[p,q] != 3
+            #     # end
+            #     # time_table[1, quadrule_types[p,q] + 1] += time
+            #     # if quadrule_types[p,q] != 1 && quadrule_types[p,q] != 2 && quadrule_types[p,q] != 3
+            #     #     @show quadrule_types[p,q]
+            #     # end
+            #     # counts[quadrule_types[p,q]] += 1
+            # end
+            # if sum(quadrule_types[p, q:q+7]) == 0
+            #     continue
+            # else
+            #     if quadrule_types[p, q] == 0
+                    
+                # elseif quadrule_types[p, q] == 1
+                #     add_element(SauterSchwabQuadratureCommonVertex, [p, q])
+                #     # counts[1] += 1
+                # elseif quadrule_types[p, q] == 2
+                #     add_element(SauterSchwabQuadratureCommonEdge, [p, q])
+                #     # counts[2] += 1
+                # elseif quadrule_types[p, q] == 3
+                #     add_element(SauterSchwabQuadratureCommonFace, [p, q])
+                #     # counts[3] += 1
+                # else
+                #     #call BEAST.jl momintegrals()
                 #     @show quadrule_types[p,q]
                 # end
-                # counts[quadrule_types[p,q]] += 1
-            end
+            # end
+
         end
     end
 end
@@ -308,79 +321,83 @@ function assemblechunk_body_gpu!(biop,
     qd, zlocal, configuration, store; quadstrat)
     type = Float64
 
-    test_elements_length = length(test_elements)
-    trial_elements_length = length(trial_elements)
+    
+    time_overhead = @elapsed begin
+        test_elements_length = length(test_elements)
+        trial_elements_length = length(trial_elements)
 
 
-    GPU_budget = configuration["total_GPU_budget"]
-    # test_sub_elements_length = x
-    # trail_sub_elements_length = y
-    # length_CommonVertex = z1
-    # length_CommonEdge = z2
-    # length_CommonFace = z3
-    # calc_budget =   3 * test_sub_elements_length * size(Float64)                                                    # size(test_assembly_gpu_values) 
-    #                 + 3 * trail_sub_elements_length * size(Float64)                                                 # size(trial_assembly_gpu_values) 
-    #                 + 3 * test_sub_elements_length * size(Float64)                                                  # size(test_assembly_gpu_indexes) 
-    #                 + 3 * trail_sub_elements_length * size(Float64)                                                 # size(trial_assembly_gpu_indexes)
+        GPU_budget = configuration["total_GPU_budget"]
+        # test_sub_elements_length = x
+        # trail_sub_elements_length = y
+        # length_CommonVertex = z1
+        # length_CommonEdge = z2
+        # length_CommonFace = z3
+        # calc_budget =   3 * test_sub_elements_length * size(Float64)                                                    # size(test_assembly_gpu_values) 
+        #                 + 3 * trail_sub_elements_length * size(Float64)                                                 # size(trial_assembly_gpu_values) 
+        #                 + 3 * test_sub_elements_length * size(Float64)                                                  # size(test_assembly_gpu_indexes) 
+        #                 + 3 * trail_sub_elements_length * size(Float64)                                                 # size(trial_assembly_gpu_indexes)
 
-    #                 + test_sub_elements_length *  trail_sub_elements_length * size(Int8)                            # size(quadrule_types_gpu)
-    #                 + test_sub_elements_length *  trail_sub_elements_length * size(Int8)                            # size(should_calc)
-    #                 + (3 * test_sub_elements_length + 2 * 3 * 3 * test_sub_elements_length                          # size(womps_weights, womps_values, womps_cart)
-    #                 + 4 * trail_sub_elements_length + 2 * 3 * 4 * trail_sub_elements_length) * sizeof(type)         # size(wimps_weights, wimps_values, wimps_cart)
-    #                 + 1 * 2^30                                                                                     # size of return matrix on gpu for dubble Int
+        #                 + test_sub_elements_length *  trail_sub_elements_length * size(Int8)                            # size(quadrule_types_gpu)
+        #                 + test_sub_elements_length *  trail_sub_elements_length * size(Int8)                            # size(should_calc)
+        #                 + (3 * test_sub_elements_length + 2 * 3 * 3 * test_sub_elements_length                          # size(womps_weights, womps_values, womps_cart)
+        #                 + 4 * trail_sub_elements_length + 2 * 3 * 4 * trail_sub_elements_length) * sizeof(type)         # size(wimps_weights, wimps_values, wimps_cart)
+        #                 + 1 * 2^30                                                                                     # size of return matrix on gpu for dubble Int
 
-                    
-    #                 +   ((3 * 2) * size(Float64)                                                                    # size(ichart1_vert) 
-    #                 +    (3 * 2) * size(Float64)                                                                    # size(ichart2_vert) 
-    #                 +    (2 * 2) * size(Float64)                                                                    # size(ichart1_tan) 
-    #                 +    (2 * 2) * size(Float64)                                                                    # size(ichart2_tan) 
-    #                 +    (4 * 2) * size(Float64)                                                                    #size(qps)
-    #                 +    (2) * size(Int64)                                                                          #size(store_index)
-    #                 ) * (z1 + z2 + z3)                                                                              # for Vertex,z Edge and Face
-    #                 +    1 * 2^30 * 3                                                                              # size of return matrix on gpu for dubble Int
+                        
+        #                 +   ((3 * 2) * size(Float64)                                                                    # size(ichart1_vert) 
+        #                 +    (3 * 2) * size(Float64)                                                                    # size(ichart2_vert) 
+        #                 +    (2 * 2) * size(Float64)                                                                    # size(ichart1_tan) 
+        #                 +    (2 * 2) * size(Float64)                                                                    # size(ichart2_tan) 
+        #                 +    (4 * 2) * size(Float64)                                                                    #size(qps)
+        #                 +    (2) * size(Int64)                                                                          #size(store_index)
+        #                 ) * (z1 + z2 + z3)                                                                              # for Vertex,z Edge and Face
+        #                 +    1 * 2^30 * 3                                                                              # size of return matrix on gpu for dubble Int
+            
         
 
 
-    
-    calc_budget =   3 * test_elements_length * sizeof(Float64)                                                    # sizeof(test_assembly_gpu_values) 
-                    + 3 * trial_elements_length * sizeof(Float64)                                                 # sizeof(trial_assembly_gpu_values) 
-                    + 3 * test_elements_length * sizeof(Float64)                                                  # sizeof(test_assembly_gpu_indexes) 
-                    + 3 * trial_elements_length * sizeof(Float64)                                                 # sizeof(trial_assembly_gpu_indexes)
+        
+        calc_budget =   3 * test_elements_length * sizeof(Float64)                                                    # sizeof(test_assembly_gpu_values) 
+                        + 3 * trial_elements_length * sizeof(Float64)                                                 # sizeof(trial_assembly_gpu_values) 
+                        + 3 * test_elements_length * sizeof(Float64)                                                  # sizeof(test_assembly_gpu_indexes) 
+                        + 3 * trial_elements_length * sizeof(Float64)                                                 # sizeof(trial_assembly_gpu_indexes)
 
-                    + test_elements_length *  trial_elements_length * sizeof(Int8)                            # sizeof(quadrule_types_gpu)
-                    + test_elements_length *  trial_elements_length * sizeof(Int8)                            # sizeof(should_calc)
-                    + (3 * test_elements_length + 2 * 3 * 3 * test_elements_length                          # sizeof(womps_weights, womps_values, womps_cart)
-                    + 4 * trial_elements_length + 2 * 3 * 4 * trial_elements_length) * sizeof(type)         # sizeof(wimps_weights, wimps_values, wimps_cart)
-                    + 6 * 10^30                                                                                     # sizeof of return matrix on gpu for dubble Int
+                        + test_elements_length *  trial_elements_length * sizeof(Int8)                            # sizeof(quadrule_types_gpu)
+                        + test_elements_length *  trial_elements_length * sizeof(Int8)                            # sizeof(should_calc)
+                        + (3 * test_elements_length + 2 * 3 * 3 * test_elements_length                          # sizeof(womps_weights, womps_values, womps_cart)
+                        + 4 * trial_elements_length + 2 * 3 * 4 * trial_elements_length) * sizeof(type)         # sizeof(wimps_weights, wimps_values, wimps_cart)
+                        + 6 * 10^30                                                                                     # sizeof of return matrix on gpu for dubble Int
 
-                    
-                    +   ((3 * 2) * sizeof(Float64)                                                                    # sizeof(ichart1_vert) 
-                    +    (3 * 2) * sizeof(Float64)                                                                    # sizeof(ichart2_vert) 
-                    +    (2 * 2) * sizeof(Float64)                                                                    # sizeof(ichart1_tan) 
-                    +    (2 * 2) * sizeof(Float64)                                                                    # sizeof(ichart2_tan) 
-                    +    (4 * 2) * sizeof(Float64)                                                                    #sizeof(qps)
-                    +    (2) * sizeof(Int64)                                                                          #sizeof(store_index)
-                    ) * (test_elements_length * trial_elements_length)                                      # for Vertex,z Edge and Face
-                    +    1 * 10^30 * 3                                                                              # sizeof of return matrix on gpu for dubble Int
+                        
+                        +   ((3 * 2) * sizeof(Float64)                                                                    # sizeof(ichart1_vert) 
+                        +    (3 * 2) * sizeof(Float64)                                                                    # sizeof(ichart2_vert) 
+                        +    (2 * 2) * sizeof(Float64)                                                                    # sizeof(ichart1_tan) 
+                        +    (2 * 2) * sizeof(Float64)                                                                    # sizeof(ichart2_tan) 
+                        +    (4 * 2) * sizeof(Float64)                                                                    #sizeof(qps)
+                        +    (2) * sizeof(Int64)                                                                          #sizeof(store_index)
+                        ) * (test_elements_length * trial_elements_length)                                      # for Vertex,z Edge and Face
+                        +    1 * 10^30 * 3                                                                              # sizeof of return matrix on gpu for dubble Int
 
-    # @show GPU_budget
-    # @show calc_budget
-    
-    amount_of_gpus = configuration["amount_of_gpus"]
+        
+        amount_of_gpus = configuration["amount_of_gpus"]
 
-    if GPU_budget >= calc_budget
         range_test = 1:amount_of_gpus
         range_trail = 1:1
-    else
-        # @show sizeof(test_elements_length), sizeof(trial_elements_length)
-        # submatrix_size, n_rows, n_cols = choose_square_submatrix_shape(test_elements_length, trial_elements_length, GPU_budget)
-        # @show submatrix_size, n_rows, n_cols
-        # submatrix_size, n_rows, n_cols = choose_square_submatrix_shape(calc_budget, GPU_budget)
-        # @show submatrix_size, n_rows, n_cols
-        range_test = 1:1
-        range_trail = 1:1
-        # return
-    end
+
+
+    # if GPU_budget >= calc_budget
+        
+    # else
+    #     # @show sizeof(test_elements_length), sizeof(trial_elements_length)
+    #     # submatrix_size, n_rows, n_cols = choose_square_submatrix_shape(test_elements_length, trial_elements_length, GPU_budget)
+    #     # @show submatrix_size, n_rows, n_cols
+    #     # submatrix_size, n_rows, n_cols = choose_square_submatrix_shape(calc_budget, GPU_budget)
+    #     # @show submatrix_size, n_rows, n_cols
+    #     range_test = 1:1
+    #     range_trail = 1:1
+    #     # return
+    # end
 
 
                     
@@ -410,7 +427,6 @@ function assemblechunk_body_gpu!(biop,
 
 
 
-    time_overhead = @elapsed begin
         empty!(gpu_results_cache)
 
 
@@ -419,6 +435,14 @@ function assemblechunk_body_gpu!(biop,
 
         todo, done, pctg = length(test_elements), 0, 0
         length_return_matrix = length(test_space.geo.vertices)
+
+        
+        #create gpu array while quadrule is running
+        create_results = Threads.@spawn begin
+            if typeof(configuration["writeBackStrategy"]) == GpuWriteBackTrueInstance
+                result_1 = create_results_matrix_gpu(backend, length_return_matrix, (0,0), configuration["writeBackStrategy"], configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"])
+            end
+        end
 
         
         writeBackStrategy = configuration["writeBackStrategy"]
@@ -456,6 +480,8 @@ function assemblechunk_body_gpu!(biop,
         trial_assembly_cpu_values_original, trial_assembly_cpu_indexes_original = trial_assembly_cpu_values, trial_assembly_cpu_indexes
         
         
+
+        
         offset = 0
         pref_offet = 0
     
@@ -463,15 +489,18 @@ function assemblechunk_body_gpu!(biop,
         time_quadrule_types = 0
         time_double_forloop = 0
         time_sauter_schwab = 0
+        time_transfer_to_CPU = 0
     end
-    @info "time overhead = $time_overhead"
 
+
+    
     
 
     for i in range_test; for j in range_trail
 
     
     elements_length_tuple = (test_elements_length, trial_elements_length)
+
 
     # @show test_elements_length * trial_elements_length
 
@@ -484,6 +513,11 @@ function assemblechunk_body_gpu!(biop,
     
     
     elements_length_tuple = (test_elements_length_, trial_elements_length)
+
+
+    
+
+
 
     test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix = test_elements_vertices_matrix_original[i_start:i_end,:,:], test_elements_tangents_matrix_original[i_start:i_end,:,:], test_elements_volume_matrix_original[i_start:i_end]
     test_assembly_cpu_values, test_assembly_cpu_indexes = test_assembly_cpu_values_original[:,i_start:i_end], test_assembly_cpu_indexes_original[:,i_start:i_end]
@@ -504,12 +538,13 @@ function assemblechunk_body_gpu!(biop,
     end
 
     
+    
 
     GC.@preserve test_elements_vertices_matrix test_elements_tangents_matrix test_elements_volume_matrix trial_elements_vertices_matrix trial_elements_tangents_matrix trial_elements_volume_matrix test_assembly_gpu_values trial_assembly_gpu_values trial_assembly_gpu_indexes test_assembly_gpu_indexes begin
 
     elements_data = [test_elements_vertices_matrix, test_elements_tangents_matrix, test_elements_volume_matrix, trial_elements_vertices_matrix, trial_elements_tangents_matrix, trial_elements_volume_matrix]
     assembly_gpu_data = [test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, test_assembly_cpu_indexes, trial_assembly_cpu_indexes]
-
+    
     time_quadrule_types += @elapsed begin   
         quadrule_types_gpu = KernelAbstractions.allocate(backend, Int8, elements_length_tuple)
         
@@ -525,23 +560,27 @@ function assemblechunk_body_gpu!(biop,
     end
 
 
-   
+
+
+
+
+    SauterSchwabQuadratureCommonVertex = SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonVertexCustomGpuData}()
+    SauterSchwabQuadratureCommonEdge = SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonEdgeCustomGpuData}()
+    SauterSchwabQuadratureCommonFace = SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonFaceCustomGpuData}()
 
     t = Threads.@spawn begin
-        time_double_forloop += @elapsed begin
-            
+        # time_transfer_to_CPU += @elapsed begin
             quadrule_types = Array{Int8}(undef, elements_length_tuple)
-            # @noswitch begin
-                KernelAbstractions.copyto!(CPU(), quadrule_types, quadrule_types_gpu)
-            # end
-            # KernelAbstractions.synchronize(CPU())
+            KernelAbstractions.copyto!(CPU(), quadrule_types, quadrule_types_gpu)
+        # end
+        # time_double_forloop += @elapsed begin
 
             # quadrule_types = Array(quadrule_types_gpu)
             # @assert !(4 in quadrule_types)
 
             array = []
             threads_array = []
-            nthreads = Threads.nthreads() - 5
+            nthreads = Threads.nthreads()
             indexes_ = [round(Int,s) for s in range(0, stop=test_elements_length_, length=nthreads+1)]
             for i in 1:nthreads
                 SauterSchwabQuadratureCommonVertex_ = SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonVertexCustomGpuData}()
@@ -608,33 +647,13 @@ function assemblechunk_body_gpu!(biop,
         # end
         # @show time_double_forloop
 
-        time_sauter_schwab += @elapsed begin
-            sauterschwab_task_1 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonVertex, SauterSchwabQuadrature.CommonVertex(qd.gausslegendre[1]), 
-                assembly_gpu_data, 
-                biop, SauterSchwabQuadratureCommonVertexCustomGpuDataInstance(), time_table, 2,
-                elements_data,
-                store, length_return_matrix, time_to_store, elements_length_tuple, configuration)
-
-            sauterschwab_task_2 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonEdge, SauterSchwabQuadrature.CommonEdge(qd.gausslegendre[2]),
-                assembly_gpu_data, 
-                biop, SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance(), time_table, 3,
-                elements_data,
-                store, length_return_matrix, time_to_store, elements_length_tuple, configuration)
-
-            sauterschwab_task_3 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonFace, SauterSchwabQuadrature.CommonFace(qd.gausslegendre[3]),
-                assembly_gpu_data, 
-                biop, SauterSchwabQuadratureCommonFaceCustomGpuDataInstance(), time_table, 4,
-                elements_data,
-                store, length_return_matrix, time_to_store, elements_length_tuple, configuration)
-                
-            wait(sauterschwab_task_1)
-            wait(sauterschwab_task_2)
-            wait(sauterschwab_task_3)
-        end
+        
     end
     
-
+    
     time_double_int += @elapsed begin
+        wait(create_results)
+        
         sk = schedule_kernel!(
             backend, 
             length_return_matrix, elements_length_tuple,
@@ -642,7 +661,8 @@ function assemblechunk_body_gpu!(biop,
             biop, should_calc, qd, type, store,
             time_table, time_to_store, pref_offet,
             elements_data,
-            configuration
+            configuration,
+            configuration["writeBackStrategy"]
             # producers
         )
         # wait(sk)
@@ -655,24 +675,75 @@ function assemblechunk_body_gpu!(biop,
     
 
     wait(t) 
+    time_sauter_schwab += @elapsed begin
+        sauterschwab_task_1 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonVertex, SauterSchwabQuadrature.CommonVertex(qd.gausslegendre[1]), 
+            assembly_gpu_data, 
+            biop, SauterSchwabQuadratureCommonVertexCustomGpuDataInstance(), time_table, 2,
+            elements_data,
+            store, length_return_matrix, time_to_store, elements_length_tuple, configuration)
+
+        sauterschwab_task_2 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonEdge, SauterSchwabQuadrature.CommonEdge(qd.gausslegendre[2]),
+            assembly_gpu_data, 
+            biop, SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance(), time_table, 3,
+            elements_data,
+            store, length_return_matrix, time_to_store, elements_length_tuple, configuration)
+
+        sauterschwab_task_3 = Threads.@spawn sauterschwab_parameterized_gpu_outside_loop!(SauterSchwabQuadratureCommonFace, SauterSchwabQuadrature.CommonFace(qd.gausslegendre[3]),
+            assembly_gpu_data, 
+            biop, SauterSchwabQuadratureCommonFaceCustomGpuDataInstance(), time_table, 4,
+            elements_data,
+            store, length_return_matrix, time_to_store, elements_length_tuple, configuration)
+            
+        wait(sauterschwab_task_1)
+        wait(sauterschwab_task_2)
+        wait(sauterschwab_task_3)
+    end
 
     
     pref_offet = offset
 
     end
+    GC.gc()
     end end
 
     
-    @info "time to determin the quadrule = $time_quadrule_types"
-    @info "time to calculate the double int = $time_double_int"
-    @info "time to calculate double for loop = $time_double_forloop"
-    @info "time to calculate SauterSwab = $time_sauter_schwab"
+    # @info "time overhead = $time_overhead"
+    # @info "time to determin the quadrule = $time_quadrule_types"
+    
+    # @info "time to calculate the double int = $time_double_int"
+    # @info "time to transfer quadrule to CPU = $time_transfer_to_CPU"
+    # @info "time to calculate double for loop = $time_double_forloop"
+    # @info "time to calculate SauterSwab = $time_sauter_schwab"
     
 
-    @info "time_table[1,:] = $(time_table[1,:] .|> x -> x.value)"
-    @info "time_table[2,:] = $(time_table[2,:] .|> x -> x.value)"
-    @info "counts = $counts"
-    @info "time_to_store = $(time_to_store.value)"
+    # @info "time_table[1,:] = $(time_table[1,:] .|> x -> x.value)"
+    # @info "time_table[2,:] = $(time_table[2,:] .|> x -> x.value)"
+    # # @info "counts = $counts"
+    # @info "time_to_store = $(time_to_store.value)"
+
+    if isdefined(Main, :time_logger)
+        function log_time(time_logger, key::String, value)
+            if haskey(time_logger, key)
+                push!(time_logger[key], value)
+            else
+                time_logger[key] = [value]
+            end
+        end
+        log_time(time_logger, "time overhead", time_overhead)
+        log_time(time_logger, "time to determin the quadrule", time_quadrule_types)
+        log_time(time_logger, "calculate the double int", time_double_int)
+        log_time(time_logger, "transfer quadrule to CPU", time_transfer_to_CPU)
+        log_time(time_logger, "calculate double for loop", time_double_forloop)
+        log_time(time_logger, "calculate SauterSchwab", time_sauter_schwab)
+        for i in 2:4
+            log_time(time_logger, "time_sauter_schwab_overhead_and_test_toll $i", time_table[1,i])
+            log_time(time_logger, "calc_sauter_schwab $i", time_table[2,i])
+
+        end
+        log_time(time_logger, "time_table[1,:]", time_table[1,:])
+        log_time(time_logger, "time_table[2,:]", time_table[2,:])
+        log_time(time_logger, "time_to_store", time_to_store)
+    end
 
 
     # @show time_table[1,:]
@@ -690,4 +761,8 @@ function move(backend, input)
         KernelAbstractions.copyto!(backend, out, input)
     # end
     return out
+end
+
+function move(backend, out, input)
+    KernelAbstractions.copyto!(backend, out, input)
 end

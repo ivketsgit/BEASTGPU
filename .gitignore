@@ -3,3 +3,4 @@ hello.jl
 nsight_results/
 testing/results.txt
 testing/results_atomic_vs_non_atomic.txt
+/testing/**/*.txt

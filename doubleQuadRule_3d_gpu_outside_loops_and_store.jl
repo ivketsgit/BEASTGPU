@@ -58,7 +58,6 @@ function doubleQuadRule_generic_3d_gpu_outside_loop!(result,
                 ndrange = ndrange_)
         KernelAbstractions.synchronize(backend)
     end
-    
     Threads.atomic_add!(time_table[2,index], time_1)
     # time_table[2,index] += time_1
 end

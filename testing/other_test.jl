@@ -12,8 +12,7 @@ include("../CustomDataStructs/GpuWriteBack.jl")
 include("../utils/backend.jl")
 
 
-
-global_logger(ConsoleLogger(stderr, Logging.Warn))
+# global_logger(ConsoleLogger(stderr, Logging.Warn))
 
 writeBackStrategy = GpuWriteBackTrueInstance()
 #warmup
@@ -50,17 +49,22 @@ open("testing/results_atomic_vs_non_atomic.txt", "w") do file
     end
 end
 
-for inv_density_factor in [15, 25, 30, 33, 35, 37, 39, 40]
+for inv_density_factor in [33, 35, 37, 39, 40] # 15, 25, 30, 33, 35, 37, 39, 40
     open("testing/results_atomic_vs_non_atomic.txt", "a") do file
         redirect_stdout(file) do
             print("\n ", inv_density_factor, " : [")
-            Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
-            X = lagrangec0d1(Γ) 
-            S = Helmholtz3D.singlelayer(wavenumber = 1.0)
-            b  = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples_ evals=1 seconds=9999999999999999999999999999999999999999999999999999999999999999999
+        end
+    end
+    
+    Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
+    X = lagrangec0d1(Γ) 
+    S = Helmholtz3D.singlelayer(wavenumber = 1.0)
+    b  = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples_ evals=1 seconds=9999999999999999999999999999999999999999999999999999999999999999999
+    
+    b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
             
-            b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
-            
+    open("testing/results_atomic_vs_non_atomic.txt", "a") do file
+        redirect_stdout(file) do
             print(" ],")
         end
     end
@@ -68,8 +72,8 @@ for inv_density_factor in [15, 25, 30, 33, 35, 37, 39, 40]
     #     write(io, string("\n",inv_density_factor,  " ", samples, " ", configuration, " ", string(b_stats)))
     # end
 end
-open("testing/results_atomic_vs_non_atomic.txt", "w") do file
+open("testing/results_atomic_vs_non_atomic.txt", "a") do file
     redirect_stdout(file) do
-        print("\a}")
+        print("\n}")
     end
 end        
