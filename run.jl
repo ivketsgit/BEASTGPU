@@ -3,13 +3,15 @@ using CompScienceMeshes
 using BenchmarkTools
 using Serialization
 using Logging
+using CUDA
+using CUDA.CUDAKernels
 
 #global_logger(ConsoleLogger(stderr, Logging.Info))
 
 
 include("assamble_gpu.jl")
 include("CustomDataStructs/GpuWriteBack.jl")
-include("utils/backend.jl")
+
 
 
 
@@ -32,8 +34,12 @@ configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = doubleQuadRu
 configuration["ShouldCalcInstance"] = ShouldCalcTrueInstance()
 configuration["GPU_budget_pipeline_result"] = 24 * GiB
 configuration["amount_of_producers"] = 16
+configuration["makeCompexWithGPU"] = true
+backend = CUDABackend()
+CUDA.allowscalar(false)
+configuration["backend"] = backend
 
-inv_density_factor = 27
+inv_density_factor = 40
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
 # Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor; generator=:gmsh)
 X = lagrangec0d1(Γ) 
@@ -65,8 +71,8 @@ time_logger["calculate the double int"] = []
 time_logger["transfer quadrule to CPU"] = []
 time_logger["calculate double for loop"] = []
 time_logger["calculate SauterSchwab"] = []
-# time_logger["time_table[1,:]"] = []
-# time_logger["time_table[2,:]"] = []
+time_logger["time_table[1,:]"] = []
+time_logger["time_table[2,:]"] = []
 time_logger["time_to_store"] = []
 time_logger["transfer results to CPU"] = []
 time_logger["create results as complex numbers"] = []
@@ -80,49 +86,75 @@ time_logger["calc_sauter_schwab 3"] = []
 time_logger["calc_sauter_schwab 4"] = []
 
 let time = @elapsed begin
-        M_ref_gpu = assemble_gpu(S,X,X,configuration)
+        M = assemble_gpu(S,X,X,configuration,configuration["writeBackStrategy"])
     end 
     println("Elapsed time: ", time)
     println("")
 end
 
 
-# function extract_atomic_values(value)
-#     @show value
-#     if value == []
-#         # Case 3: Empty vector
-#         return []
-#     elseif all(x -> isa(x, Atomic{Float64}), value)
-#         # Case 1: Flat vector of Atomic{Float64}
-#         @show value
-#         return mean([x[] for x in value][:])
-#     elseif all(x -> isa(x, Vector{Atomic{Float64}}), value)
-#         # Case 2: Vector of Vectors (2D matrix-like structure)
-#         return [mean([x[] for x in row][:]) for row in value]
-#     elseif all(x -> isa(x, Float64), value)
-#         # Case 3: Empty vector
-#         return mean(value[:])
-#     elseif all(x -> isa(x, Vector{Float64}), value)
-#         # Case 3: Empty vector
-#         return mean(value[:])
-#     else
-#         @show value
-#         @show typeof(value)
-#         error("Unsupported structure: expected Vector{Atomic{Float64}} or Vector{Vector{Atomic{Float64}}}")
-#     end
-# end
+function extract_atomic_values(value)
+    if isempty(value)
+        return []
+    end
 
-# let keys = ["time overhead", "time to determin the quadrule", "calculate the double int", "transfer quadrule to CPU", "calculate double for loop", "calculate SauterSchwab", "time_to_store", "transfer results to CPU", "create results as complex numbers", "time_sauter_schwab_overhead_and_test_toll 2", "time_sauter_schwab_overhead_and_test_toll 3", "time_sauter_schwab_overhead_and_test_toll 4"]
-#     for key in keys
-#         if haskey(time_logger, key)
-#             value = time_logger[key]
-#             means = extract_atomic_values(value)
 
-#             println(key, "     ", means)
-#             # @show value
-#         end
-#     end
-# end
+    # Case 1: Flat vector of Atomic{Float64}
+    if all(x -> isa(x, Atomic{Float64}), value)
+        return mean([x[] for x in value][:])
+
+    # Case 2: Vector of Vectors (2D matrix-like structure)
+    elseif all(x -> isa(x, AbstractVector{<:Atomic{Float64}}), value)
+        # return [mean([x[] for x in row][:]) for row in value]
+        return [[x[] for x in row] for row in value]  
+
+    # Case 3: Empty vector
+    elseif all(x -> isa(x, Float64), value)
+        return mean(value[:])
+
+    # Case 3: Empty vector
+    elseif all(x -> isa(x, AbstractVector{<:Float64}), value)
+        return mean(value[:])
+
+
+
+
+
+    # Case 1: Flat vector of Atomic{Int64}
+    elseif all(x -> isa(x, Atomic{Int64}), value)
+        return mean([x[] for x in value][:])
+
+    # Case 2: Vector of Vectors (2D matrix-like structure)
+    elseif all(x -> isa(x, AbstractVector{<:Atomic{Int64}}), value)
+        # return [mean([x[] for x in row][:]) for row in value]
+        return [[x[] for x in row] for row in value]  
+
+    # Case 3: Empty vector
+    elseif all(x -> isa(x, Int64), value)
+        return mean(value[:])
+
+    # Case 3: Empty vector
+    elseif all(x -> isa(x, AbstractVector{<:Int64}), value)
+        return mean(value[:])
+
+    else
+        @show value
+        @show typeof(value)
+        error("Unsupported structure: expected Vector{Atomic{Float64}} or Vector{Vector{Atomic{Float64}}}")
+    end
+end
+
+let keys = ["time overhead", "time to determin the quadrule", "calculate the double int", "transfer quadrule to CPU", "calculate double for loop", "calculate SauterSchwab", "time_to_store", "transfer results to CPU", "create results as complex numbers", "time_sauter_schwab_overhead_and_test_toll 2", "time_sauter_schwab_overhead_and_test_toll 3", "time_sauter_schwab_overhead_and_test_toll 4", "time_table[1,:]", "time_table[2,:]"]
+    for key in keys
+        if haskey(time_logger, key)
+            value = time_logger[key]
+            means = extract_atomic_values(value)
+
+            println(key, "     ", means)
+            # @show value
+        end
+    end
+end
 
 # let time = @elapsed begin
 #         M = assemble_gpu(S,X,X,writeBackStrategy,2)
@@ -133,15 +165,23 @@ end
 # @show M_ref
 # @show M
 
-# M_ref = open(filename, "r") do io
-#     deserialize(io)
-# end
+M_ref = open(filename, "r") do io
+    deserialize(io)
+end
 
 # # println("")
 
 # global_logger(ConsoleLogger(stderr, Logging.Info)) 
-# # error_matrix = abs.(M_ref .- M)
-# # @show maximum(error_matrix)
+
+min_M_row = Array{Float64}(undef, size(M)[1])
+@threads for col in 1:size(M)[1]
+    min_M_row[col] = abs.(M_ref[col] .- M[col])
+end
+@show maximum(min_M_row)
+
+
+# @show @elapsed error_matrix = abs.(M_ref .- M)
+# @show maximum(error_matrix)
 # error_matrix = abs.(M_ref .- M_ref_gpu)
 # println("")
 # @show maximum(error_matrix)

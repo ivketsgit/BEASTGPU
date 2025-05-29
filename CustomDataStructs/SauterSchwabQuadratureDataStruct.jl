@@ -1,11 +1,11 @@
 using StaticArrays
-abstract type CustomGpuData end
-abstract type SauterSchwabQuadratureCommonVertexCustomGpuData <: CustomGpuData end
-abstract type SauterSchwabQuadratureCommonEdgeCustomGpuData <: CustomGpuData end
-abstract type SauterSchwabQuadratureCommonFaceCustomGpuData <: CustomGpuData end
-struct SauterSchwabQuadratureCommonVertexCustomGpuDataInstance <: SauterSchwabQuadratureCommonVertexCustomGpuData end
-struct SauterSchwabQuadratureCommonEdgeCustomGpuDataInstance <: SauterSchwabQuadratureCommonEdgeCustomGpuData end
-struct SauterSchwabQuadratureCommonFaceCustomGpuDataInstance <: SauterSchwabQuadratureCommonFaceCustomGpuData end
+abstract type SauterSchwabCustomGpuData end
+abstract type CommonVertexCustomGpuData <: SauterSchwabCustomGpuData end
+abstract type CommonEdgeCustomGpuData <: SauterSchwabCustomGpuData end
+abstract type CommonFaceCustomGpuData <: SauterSchwabCustomGpuData end
+struct CommonVertexCustomGpuDataInstance <: CommonVertexCustomGpuData end
+struct CommonEdgeCustomGpuDataInstance <: CommonEdgeCustomGpuData end
+struct CommonFaceCustomGpuDataInstance <: CommonFaceCustomGpuData end
 
 @kwdef mutable struct SauterSchwabQuadrature_gpu_data{TypeMarker}    
     ichart1_vert::Vector{SVector{3, SVector{2, Float64}}} = []
@@ -18,6 +18,20 @@ struct SauterSchwabQuadratureCommonFaceCustomGpuDataInstance <: SauterSchwabQuad
     qps::Vector{Any}  = []
     store_index::Vector{Any}  = []
 end
+
+get_index_for_timing(::SauterSchwabQuadrature_gpu_data{CommonVertexCustomGpuData}) = 2
+get_index_for_timing(::SauterSchwabQuadrature_gpu_data{CommonEdgeCustomGpuData}) = 3
+get_index_for_timing(::SauterSchwabQuadrature_gpu_data{CommonFaceCustomGpuData}) = 4
+
+
+get_instance(::SauterSchwabQuadrature_gpu_data{CommonVertexCustomGpuData}) = CommonVertexCustomGpuDataInstance()
+get_instance(::SauterSchwabQuadrature_gpu_data{CommonEdgeCustomGpuData}) = CommonEdgeCustomGpuDataInstance()
+get_instance(::SauterSchwabQuadrature_gpu_data{CommonFaceCustomGpuData}) = CommonFaceCustomGpuDataInstance()
+
+
+# function get_index_for_timing(::SauterSchwabQuadrature_gpu_data{CommonVertexCustomGpuData}) 2 end
+# function get_index_for_timing(::SauterSchwabQuadrature_gpu_data{CommonVertexCustomGpuData}) 3 end
+# function get_index_for_timing(::SauterSchwabQuadrature_gpu_data{CommonVertexCustomGpuData}) 4 end
 
 function add_element(obj::SauterSchwabQuadrature_gpu_data, 
     ichart1_vert::SVector{3, SVector{2, Float64}}, ichart2_vert::SVector{3, SVector{2, Float64}}, 
@@ -38,7 +52,7 @@ function add_element(obj::SauterSchwabQuadrature_gpu_data,
 end
 
 
-function add_element(obj::SauterSchwabQuadrature_gpu_data, 
+@inline function add_element(obj::SauterSchwabQuadrature_gpu_data, 
     # qps, 
     store_index)
     # push!(obj.qps, qps)

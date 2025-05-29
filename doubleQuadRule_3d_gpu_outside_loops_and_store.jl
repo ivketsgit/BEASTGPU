@@ -8,55 +8,49 @@ using KernelAbstractions: @atomic
 using StaticArrays
 include("store_with_kernel.jl")  
 
-function doubleQuadRule_generic_3d_gpu_outside_loop!(result,
-    assembly_gpu_data,
+@inline function doubleQuadRule_generic_3d_gpu_outside_loop!(result,
+    data,
     biop,
     wimps_and_womps, 
-    x_offset, y_offset,
+    offset,
     time_table, index, ndrange_,
-    elements_data, floatType,
+    floatType,
     configuration,
-    should_calc=0,
+    quadrule_types_gpu=0,
     SauterSchwabQuadratureCommonVertex=0, SauterSchwabQuadratureCommonEdge=0,SauterSchwabQuadratureCommonFace=0)
 
     instance = configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"]
     writeBackStrategy = configuration["writeBackStrategy"]
     ShouldCalcInstance = configuration["ShouldCalcInstance"]
 
-    backend = KernelAbstractions.get_backend(result)
+    backend = configuration["backend"]
     store_index = load_data_(instance, backend, time_table, SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace)
 
     α = biop.alpha
     γ = biop.gamma
 
-    time_1 = @elapsed begin
-        backend = KernelAbstractions.get_backend(result)
-        test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values = assembly_gpu_data[1], assembly_gpu_data[2], assembly_gpu_data[3], assembly_gpu_data[4]
-        test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix = elements_data[1], elements_data[4], elements_data[6]
+    elements_data = data[1]
+    assembly_gpu_data = data[2]
+    
 
-        womps_weights = wimps_and_womps[1]
-        womps_values = wimps_and_womps[2]
-        womps_cart = wimps_and_womps[3]
-        wimps_weights = wimps_and_womps[4]
-        wimps_values = wimps_and_womps[5]
-        wimps_cart = wimps_and_womps[6]
-        
-        floatmax_type = floatmax(floatType)
-        
-        combined_kernel_temp_outside_loops_linear_index!(backend)(
+    time_1 = @elapsed begin
+        task = Threads.@spawn begin
+            combined_kernel_temp_outside_loops_linear_index!(backend)(
                 result,
-                test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values,
+                assembly_gpu_data[1:4]..., #test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values,
                 γ, α,
-                womps_weights, wimps_weights, 
-                womps_values, wimps_values,
-                womps_cart, wimps_cart, 
-                x_offset, y_offset,
+                wimps_and_womps..., #womps_weights, womps_values, womps_cart, wimps_weights, wimps_values, wimps_cart,
+                offset..., #x_offset, y_offset,
                 instance, writeBackStrategy,
-                should_calc,
+                quadrule_types_gpu,
                 store_index,
-                ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type,
+                ShouldCalcInstance,
+                elements_data[[1, 4, 6]]..., #test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix,
+                floatmax(floatType),
                 ndrange = ndrange_)
-        KernelAbstractions.synchronize(backend)
+            KernelAbstractions.synchronize(backend)
+            end
+        wait(task)
     end
     Threads.atomic_add!(time_table[2,index], time_1)
     # time_table[2,index] += time_1
@@ -66,72 +60,43 @@ end
 @kernel function combined_kernel_temp_outside_loops_linear_index!(result,
     @Const(test_assembly_gpu_indexes), @Const(trial_assembly_gpu_indexes), @Const(test_assembly_gpu_values), @Const(trial_assembly_gpu_values),
     @Const(γ), @Const(α),
-    @Const(womps_weights), @Const(wimps_weights), 
-    @Const(womps_values), @Const(wimps_values),
-    @Const(womps_cart), @Const(wimps_cart), 
+    @Const(womps_weights), @Const(womps_values), @Const(womps_cart),
+    @Const(wimps_weights), @Const(wimps_values), @Const(wimps_cart), 
     @Const(x_offset), @Const(y_offset),
     @Const(T::doubleQuadRuleGpuStrategy), @Const(T2::GpuWriteBack), 
-    @Const(should_calc), @Const(store_index),
+    @Const(quadrule_types_gpu), @Const(store_index),
     @Const(ShouldCalcInstance::ShouldCalc), @Const(test_elements_vertices_matrix), @Const(trial_elements_vertices_matrix), @Const(trial_elements_volume_matrix), @Const(floatmax_type))    
 
     K, L = @index(Global, NTuple)
     K = get_index(T, K, L, store_index, true) + x_offset
     L = get_index(T, K, L, store_index, false) + y_offset
-
+    
     P = @private ComplexF64 (9)
-    for i in 1:9
-        P[i] = 0.0
-    end
-
+    
     @inbounds begin
-        # R1 = 0
-        # R2 = 0
-        # R3 = 0
-        # R4 = 0
-        # R5 = 0
-        # R6 = 0
-        # R7 = 0
-        # R8 = 0
-        # R9 = 0
-
-        # R = 0
-        # j_αG = 0
-        # j_αG_womps_values = 0
+        for i in 1:9
+            P[i] = 0.0
+        end
         
-        @unroll for I in 1:3
-            @unroll for J in 1:4
-                # @fastmath
-                R = sqrt( (womps_cart[K, I, 1] - wimps_cart[L, J, 1])^2 + 
-                                    (womps_cart[K, I, 2] - wimps_cart[L, J, 2])^2 + 
-                                    (womps_cart[K, I, 3] - wimps_cart[L, J, 3])^2 )
+        for I in 1:3
+            for J in 1:4
+                R = sqrt((womps_cart[K, I, 1] - wimps_cart[L, J, 1])^2 + 
+                        (womps_cart[K, I, 2] - wimps_cart[L, J, 2])^2 + 
+                        (womps_cart[K, I, 3] - wimps_cart[L, J, 3])^2 )
 
-                j_αG = calc_j_αG(α, womps_weights[K, I], wimps_weights[L, J], R, γ, T, should_calc, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type)
+                
 
-                # j_αG_womps_values = j_αG * womps_values[K, I, 1]
-                # R1 += j_αG_womps_values * wimps_values[L, J, 1]
-                # R2 += j_αG_womps_values * wimps_values[L, J, 2]
-                # R3 += j_αG_womps_values * wimps_values[L, J, 3]
+                j_αG = calc_j_αG(α, womps_weights[K, I], wimps_weights[L, J], R, γ, T, quadrule_types_gpu, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type)
 
-                # j_αG_womps_values = j_αG * womps_values[K, I, 2]
-                # R4 += j_αG_womps_values * wimps_values[L, J, 1]
-                # R5 += j_αG_womps_values * wimps_values[L, J, 2]
-                # R6 += j_αG_womps_values * wimps_values[L, J, 3]
-
-                # j_αG_womps_values = j_αG * womps_values[K, I, 3]
-                # R7 += j_αG_womps_values * wimps_values[L, J, 1]
-                # R8 += j_αG_womps_values * wimps_values[L, J, 2]
-                # R9 += j_αG_womps_values * wimps_values[L, J, 3]
-                @unroll for i in 1:3
-                    j_αG_womps_values = j_αG * womps_values[K, I, i]
+                @unroll for i in 0:2
+                    j_αG_womps_values = j_αG * womps_values[K, I, i+1]
                     @unroll for j in 1:3
-                        P[(i - 1) * 3 + j] += j_αG_womps_values * wimps_values[L, J, j]
+                        P[i * 3 + j] += j_αG_womps_values * wimps_values[L, J, j]
                     end
                 end
             end
         end
         store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, P, T2)
-        # store_with_kernel_splits!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, P, T2)
-        # store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, R1,R2,R3,R4,R5,R6,R7,R8,R9, T2)
     end
 end
 
@@ -173,16 +138,16 @@ end
 
 const i4pi = 1 / (4pi)
 const epsilon =  eps(Float64)
-@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyOptimistic, should_calc, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatType)
-    return α * womps_weight * wimps_weight * i4pi / max(R, 1e-10) * exp(-R*γ)
+@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyOptimistic, quadrule_types_gpu, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatType)
+    return α * womps_weight * wimps_weight * i4pi / R * exp(-R*γ)
 end
-@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyRepaire, should_calc, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatType)
-    return - α * womps_weight * wimps_weight * i4pi / max(R, 1e-10) * exp(-R*γ)
+@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyRepaire, quadrule_types_gpu, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatType)
+    return - α * womps_weight * wimps_weight * i4pi / R * exp(-R*γ)
 end
-@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyShouldCalculate, should_calc, K, L, ShouldCalcInstance::ShouldCalcTrue, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatType)
-    K_offset = K - 1
+@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyShouldCalculate, quadrule_types_gpu, K, L, ShouldCalcInstance::ShouldCalcTrue, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatType)
+    # K_offset = K - 1
     
-    return α * womps_weight * wimps_weight * i4pi / R * exp(-R*γ) * should_calc[K, L]
+    return α * womps_weight * wimps_weight * i4pi / R * exp(-R*γ) * (quadrule_types_gpu[K, L] == 0)
     # return α * womps_weight * wimps_weight * i4pi / R * exp(-R*γ) * ((should_calc[(K_offset >> 5) + 1, L] >> ((K_offset & 31 ))) & 1)
 end
 

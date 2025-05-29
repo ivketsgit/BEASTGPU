@@ -24,5 +24,5 @@ REPORT_NAME="$RESULT_DIR/profile_${next_index}"
 # Run nsys
 nsys profile \
   --output "$REPORT_NAME" \
-  --trace=cuda,nvtx,osrt \
-  $PROGRAM -e "using Pkg; Pkg.activate(\"env\"); include(\"$SCRIPT\"); include(\"$SCRIPT\")"
+  --trace=cuda \
+  $PROGRAM -e "using Pkg; Pkg.activate(\"env\"); include(\"$SCRIPT\")"
