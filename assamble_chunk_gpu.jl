@@ -1,21 +1,17 @@
-include("doubleQuadRule_3d_gpu_outside_loops_and_store.jl")
 include("GPU_scheduler.jl")
 include("load_parameters.jl")
 include("quadrule_determine.jl")
-include("load_data_into_custom_datastructs.jl")
-include("SauterSchwab.jl")
+include("nonMainCaseQuadratures.jl")
 
 #CustomDataStructs
-include("CustomDataStructs/SauterSchwabQuadratureDataStruct.jl")
 include("CustomDataStructs/doubleQuadRuleGpuStrategy.jl")
 include("CustomDataStructs/should_calc.jl")
 
-
 #utils
 include("utils/noSwitch.jl")
-include("utils/copy_to_CPU.jl")
 include("utils/log.jl")
 include("utils/move.jl")
+include("utils/ElementAssemblyData.jl")
 
 using StaticArrays
 using CompScienceMeshes   
@@ -45,7 +41,7 @@ struct HH3DSingleLayerFDBIO{T,K} <: Helmholtz3DOp{T,K}
     gamma::K
 end
 
-function assemblechunk_gpu!(biop::BEAST.IntegralOperator, tfs::BEAST.Space, bfs::BEAST.Space, configuration, store;
+function assemblechunk_gpu!(biop::BEAST.IntegralOperator, tfs::BEAST.Space, bfs::BEAST.Space, config, store;
     quadstrat=BEAST.defaultquadstrat(biop, tfs, bfs))
 
     tr = BEAST.assemblydata(tfs); tr == nothing && return
@@ -76,179 +72,94 @@ function assemblechunk_gpu!(biop::BEAST.IntegralOperator, tfs::BEAST.Space, bfs:
     assemblechunk_body_gpu!(biop,
         tfs, test_elements, tad, tcells,
         bfs, bsis_elements, bad, bcells,
-        qd, zlocal, configuration, store; quadstrat=qs)
+        qd, zlocal, config, store; quadstrat=qs)
 end
 
+mutable struct TimingInfo
+    time_overhead::Float64
+    time_double_int::Float64
+    time_quadrule_types::Float64
+    time_double_forloop::Float64
+    time_sauter_schwab::Float64
+    time_transfer_to_CPU::Float64
+    time_to_store::Threads.Atomic{Float64}
+    time_table::Matrix{Atomic{Float64}}
+end
 
 function assemblechunk_body_gpu!(biop,
     test_space, test_elements, test_assembly_data, test_cell_ptrs,
     trial_space, trial_elements, trial_assembly_data, trial_cell_ptrs,
-    qd, zlocal, configuration, store; quadstrat)
-    type = Float64
+    qd, zlocal, config, store; quadstrat)
 
+    
     time_all = @elapsed begin
-        time_overhead = @elapsed begin
+        #timers
+        timingInfo = TimingInfo(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Threads.Atomic{Float64}(0), [Atomic{Float64}(0.0) for _ in 1:2, _ in 1:4])
 
+        timingInfo.time_overhead = @elapsed begin
             #BEAST.jl loads
-            test_elements_length = length(test_elements)
-            trial_elements_length = length(trial_elements)
-
             test_shapes = refspace(test_space)
             trial_shapes = refspace(trial_space)
 
             todo, done, pctg = length(test_elements), 0, 0
             length_return_matrix = length(test_space.geo.vertices)
 
-            
-            writeBackStrategy = configuration["writeBackStrategy"]
-            backend = configuration["backend"]
-            amount_of_gpus = configuration["amount_of_gpus"]
-            InstancedoubleQuadRuleGpuStrategyShouldCalculate = configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"]
-            ShouldCalcInstance = configuration["ShouldCalcInstance"]
 
+            amount_of_gpus = config.amount_of_gpus
             range_test = 1:amount_of_gpus
             range_trail = 1:1
 
             empty!(gpu_results_cache)
 
             indexes = [round(Int,s) for s in range(0, stop=length(test_elements), length=amount_of_gpus+1)]
-            lengths = ones(Int, amount_of_gpus)
-            for i in 1:amount_of_gpus
-                lengths[i] = indexes[i+1] - indexes[i]
-            end
+            trial_elements_length = length(trial_elements)
             
-            
-            test_elements_data_original = load_data(backend, type, test_elements_length, test_elements)
-            trial_elements_data_original = load_data(backend, type, trial_elements_length, trial_elements)
+            test_elements_data_original = load_data_elements(config, test_elements)
+            trial_elements_data_original = load_data_elements(config, trial_elements)
 
-            test_assembly_data = validate_and_extract(test_assembly_data, test_elements_length)
-            trial_assembly_data = validate_and_extract(trial_assembly_data, trial_elements_length)
+            test_assembly_data = extract_values_and_indexes(test_assembly_data)
+            trial_assembly_data = extract_values_and_indexes(trial_assembly_data)
 
-            trail_elements_data_gpu, trial_assembly_data_gpu = load_parameters(backend, trial_elements_data_original, trial_assembly_data, writeBackStrategy)
-            
-            #timers
-            counts = zeros(4)
-            time_table = [Atomic{Float64}(0.0) for _ in 1:2, _ in 1:4]
-
-            time_to_store = Threads.Atomic{Float64}(0)
+            trail_elements_data_gpu, trial_assembly_data_gpu = load_parameters(config, trial_elements_data_original, trial_assembly_data)
 
             offset = 0
             pref_offset = 0
         
-            time_double_int = 0
-            time_quadrule_types = 0
-            time_double_forloop = 0
-            time_sauter_schwab = 0
-            time_transfer_to_CPU = 0
+            counts = zeros(4)
         end
-        
 
         for i in range_test
             #  for j in range_trail
-
             @sync begin
-                i_start, i_end = indexes[i]+1, indexes[i+1]
-                test_elements_length_ = lengths[i]
-                offset += test_elements_length_
-                
-                elements_length_tuple = (test_elements_length_, trial_elements_length)
+                #set data for loop
+                elementAssemblyData = create_element_assembly_data!(i, indexes, offset, pref_offset, config, 
+                                                                    test_elements_data_original, test_assembly_data, trial_assembly_data,
+                                                                    trail_elements_data_gpu, trial_assembly_data_gpu, 
+                                                                    trial_elements_length, length_return_matrix)
 
-                test_elements_data_gpu, test_assembly_data_gpu = load_parameters(backend, test_elements_data_original, test_assembly_data, writeBackStrategy, (i_start:i_end,:,:))
-
-                elements_data = [test_elements_data_gpu..., trail_elements_data_gpu...]
-                assembly_gpu_data = [test_assembly_data_gpu[2], trial_assembly_data_gpu[2], test_assembly_data_gpu[1], trial_assembly_data_gpu[1], test_assembly_data[2][:,i_start:i_end], trial_assembly_data[2]]
-                data = [elements_data, assembly_gpu_data]
-                
-                time_quadrule_types += @elapsed begin   
-                    quadrule_types_gpu = KernelAbstractions.allocate(backend, Int8, elements_length_tuple)
-                    
-                    abs2_mul_16 = abs2(biop.gamma) * 16
-                    floatmax_type = floatmax(type)
-                    trial_elements_vertices_matrix =  trail_elements_data_gpu[1]
-                    trial_elements_volume_matrix = trail_elements_data_gpu[3]
-                    test_elements_vertices_matrix = test_elements_data_gpu[1]
-                    # sigma_volume = KernelAbstractions.allocate(backend, eltype(trial_elements_volume_matrix), size(trial_elements_volume_matrix))
-
-                    # permake_array_volume(backend)(sigma_volume, abs2_mul_16, trial_elements_volume_matrix, ndrange = trial_elements_length)
-                    # quadrule_determine_type(backend)(quadrule_types_gpu, test_elements_vertices_matrix, trial_elements_vertices_matrix, sigma_volume, floatmax_type, ndrange = elements_length_tuple)
-                    quadrule_determine_type(backend, 1024)(quadrule_types_gpu, abs2_mul_16, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type, ndrange = elements_length_tuple)
-                    KernelAbstractions.synchronize(backend)
-                end
-
+                #start calculations
+                quadrule_types_gpu = determine_quadrule_types(config, biop, elementAssemblyData, timingInfo)
                 
                 @async begin
-                    time_transfer_to_CPU += @elapsed begin
-                        quadrule_types = Array{Int8}(undef, elements_length_tuple)
-                        
-                        quadrule_types = copy_to_CPU(quadrule_types, quadrule_types_gpu, backend, Int8, 1024 * 1024)
-                        # quadrule_types = pinned_arr(quadrule_types, backend)
-                        # copyto!(quadrule_types, quadrule_types_gpu)
-                    end
-
-
-                    time_double_forloop += @elapsed begin  
-                        CommonVertex_data, CommonEdge_data, CommonFace_data = load_data_into_custom_datastructs(test_elements_length_, pref_offset, trial_elements_length, test_elements, trial_elements, quadrule_types, counts)
-                    end
-                    
-                    time_sauter_schwab += @elapsed begin
-                        @sync begin
-                            @async SauterSchwab!(CommonVertex_data, SauterSchwabQuadrature.CommonVertex(qd.gausslegendre[1]), 
-                                data, biop, time_table,
-                                store, length_return_matrix, time_to_store, elements_length_tuple, configuration)
-
-                            @async SauterSchwab!(CommonEdge_data, SauterSchwabQuadrature.CommonEdge(qd.gausslegendre[2]),
-                                data, biop, time_table,
-                                store, length_return_matrix, time_to_store, elements_length_tuple, configuration)
-
-                            @async SauterSchwab!(CommonFace_data, SauterSchwabQuadrature.CommonFace(qd.gausslegendre[3]),
-                                data, biop, time_table,
-                                store, length_return_matrix, time_to_store, elements_length_tuple, configuration)
-                        end
-                    end
-                    @show time_sauter_schwab
+                    nonMainCaseQuadratures!(qd, elementAssemblyData, quadrule_types_gpu, config, 
+                        test_elements, trial_elements, counts, biop, store,
+                        timingInfo)
                 end
                 
-                # @async begin
-                    time_double_int += @elapsed begin
-                        schedule_kernel!(
-                            backend, 
-                            length_return_matrix, elements_length_tuple,
-                            data, biop, quadrule_types_gpu, qd, type, store,
-                            time_table, time_to_store, pref_offset,
-                            configuration,
-                            configuration["writeBackStrategy"]
+                @async begin
+                    timingInfo.time_double_int += @elapsed begin
+                        schedule_kernel!(elementAssemblyData,
+                            biop, quadrule_types_gpu, qd, store,
+                            timingInfo, config, config.writeBackStrategy,
                         )  
                     end
-                    @show time_double_int
-                # end
-                
-
-                
-                pref_offset = offset
-
-                # end
+                end
+                pref_offset = elementAssemblyData.offset
             end
-            # end
         end 
 
-        time_log = @elapsed begin
-            if isdefined(Main, :time_logger)
-                log_time(time_logger, "time overhead", time_overhead)
-                log_time(time_logger, "time to determin the quadrule", time_quadrule_types)
-                log_time(time_logger, "calculate the double int", time_double_int)
-                log_time(time_logger, "transfer quadrule to CPU", time_transfer_to_CPU)
-                log_time(time_logger, "calculate double for loop", time_double_forloop)
-                log_time(time_logger, "calculate SauterSchwab", time_sauter_schwab)
-                for i in 2:4
-                    log_time(time_logger, "time_sauter_schwab_overhead_and_test_toll $i", time_table[1,i])
-                    log_time(time_logger, "calc_sauter_schwab $i", time_table[2,i])
-                end
-                log_time(time_logger, "time_table[1,:]", time_table[1,:])
-                log_time(time_logger, "time_table[2,:]", time_table[2,:])
-                log_time(time_logger, "time_to_store", time_to_store)
-            end
-        end
-        @show time_log
+        log_to_config(config, timingInfo)
     end
-    @show time_all
+    # @show time_all
+    # print("\n")
 end

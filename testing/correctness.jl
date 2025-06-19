@@ -23,7 +23,7 @@ const MiB = 2^20
 const GiB = 2^30
 @show(eps(Float64))
 
-configuration = Dict()
+config = Dict()
 
 writeBackStrategy = [GpuWriteBackTrueInstance(), GpuWriteBackFalseInstance()]
 amount_of_gpus = [1, 2]
@@ -32,21 +32,21 @@ InstancedoubleQuadRuleGpuStrategyShouldCalculate = [doubleQuadRuleGpuStrategySho
 ShouldCalcInstance = [ShouldCalcTrueInstance(), ShouldCalcFalseInstance()]
 GPU_budget_pipeline_result = [6 * GiB]
 for e1 in writeBackStrategy
-    configuration["writeBackStrategy"] = e1
+    config["writeBackStrategy"] = e1
     for e2 in amount_of_gpus
-        configuration["amount_of_gpus"] = e2
+        config["amount_of_gpus"] = e2
         for e3 in total_GPU_budget
-            configuration["total_GPU_budget"] = e3
+            config["total_GPU_budget"] = e3
             for e4 in InstancedoubleQuadRuleGpuStrategyShouldCalculate
-                configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = e4
+                config["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = e4
                 for e5 in ShouldCalcInstance
-                    configuration["ShouldCalcInstance"] = e5
+                    config["ShouldCalcInstance"] = e5
                     for e6 in GPU_budget_pipeline_result
-                        configuration["GPU_budget_pipeline_result"] = e6
+                        config["GPU_budget_pipeline_result"] = e6
 
-                        @show configuration
-                        # @show M_gpu configuration
-                        @show maximum(abs.(M_ref .- assemble_gpu(S, X, X, configuration)))
+                        @show config
+                        # @show M_gpu config
+                        @show maximum(abs.(M_ref .- assemble_gpu(S, X, X, config)))
                         println("")
                     end 
                 end 
@@ -55,11 +55,11 @@ for e1 in writeBackStrategy
     end 
 end
 
-configuration = Dict{Any, Any}("total_GPU_budget" => 3221225472, 
+config = Dict{Any, Any}("total_GPU_budget" => 3221225472, 
 "InstancedoubleQuadRuleGpuStrategyShouldCalculate" => doubleQuadRuleGpuStrategyShouldCalculateInstance(), 
 "GPU_budget_pipeline_result" => 6442450944, "amount_of_gpus" => 2, "ShouldCalcInstance" => ShouldCalcFalseInstance(), 
 "writeBackStrategy" => GpuWriteBackTrueInstance())
-maximum(abs.(M_ref .- assemble_gpu(S, X, X, configuration))) = 1.3904866443919908e-17
+maximum(abs.(M_ref .- assemble_gpu(S, X, X, config))) = 1.3904866443919908e-17
 
 
 

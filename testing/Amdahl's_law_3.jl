@@ -43,15 +43,15 @@ include("../utils/backend.jl")
 # const B = 8
 const MiB = 2^20
 const GiB = 2^30
-configuration = Dict()
-configuration["writeBackStrategy"] = GpuWriteBackFalseInstance()
-configuration["amount_of_gpus"] = 1
-configuration["total_GPU_budget"] = 3 * GiB
-configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = doubleQuadRuleGpuStrategyShouldCalculateInstance()
-configuration["ShouldCalcInstance"] = ShouldCalcTrueInstance()
-configuration["GPU_budget_pipeline_result"] = 12 * GiB
-configuration["amount_of_producers"] = 16
-# configuration["gpu_schedular_print_filename"] = "testing/a_dump_3.txt"
+config = Dict()
+config["writeBackStrategy"] = GpuWriteBackFalseInstance()
+config["amount_of_gpus"] = 1
+config["total_GPU_budget"] = 3 * GiB
+config["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = doubleQuadRuleGpuStrategyShouldCalculateInstance()
+config["ShouldCalcInstance"] = ShouldCalcTrueInstance()
+config["GPU_budget_pipeline_result"] = 12 * GiB
+config["amount_of_producers"] = 16
+# config["gpu_schedular_print_filename"] = "testing/a_dump_3.txt"
 
 global time_logger = Dict()
 time_logger["calculate the double int"] = []
@@ -75,7 +75,7 @@ inv_density_factor = 1
 X = lagrangec0d1(Γ) 
 S = Helmholtz3D.singlelayer(wavenumber = 1.0)
 BEAST.assemble(S,X,X)
-assemble_gpu(S,X,X,configuration)
+assemble_gpu(S,X,X,config)
 
 inv_density_factor = 40
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
@@ -92,35 +92,35 @@ end
 
 samples = 20
 
-# configuration["writeBackStrategy"] = GpuWriteBackFalseInstance()
+# config["writeBackStrategy"] = GpuWriteBackFalseInstance()
 # open(filename, "a") do file
 #     redirect_stdout(file) do
-#         println(configuration["writeBackStrategy"])
+#         println(config["writeBackStrategy"])
 #     end
 # end
 # for amount_of_gpus in [1, 2, 3, 4, 6, 12, 102] # 
-#     configuration["amount_of_gpus"] = amount_of_gpus
+#     config["amount_of_gpus"] = amount_of_gpus
 
-#     # open(configuration["gpu_schedular_print_filename"], "a") do file
-#     #     println(file, configuration["amount_of_gpus"])
+#     # open(config["gpu_schedular_print_filename"], "a") do file
+#     #     println(file, config["amount_of_gpus"])
 #     # end
 
 #     # if amount_of_gpus == 1
 #     #     open("testing/time_for_supartts_.txt", "a") do file
-#     #         println(file, configuration["amount_of_gpus"])
+#     #         println(file, config["amount_of_gpus"])
 #     #     end
 #     # end
 
 #     println(amount_of_gpus)
-#     assemble_gpu(S,X,X,configuration) 
+#     assemble_gpu(S,X,X,config) 
 #     # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 
     
-#     # println(configuration["amount_of_gpus"])
+#     # println(config["amount_of_gpus"])
 #     # println(b_stats)
 
 #     # open(filename, "a") do file
-#     #     println(file, configuration["amount_of_gpus"])
+#     #     println(file, config["amount_of_gpus"])
 #     #     println(file, b_stats)
 #     #     end
 #     # end
@@ -133,23 +133,23 @@ samples = 20
 
 
 
-configuration["writeBackStrategy"] = GpuWriteBackTrueInstance()
+config["writeBackStrategy"] = GpuWriteBackTrueInstance()
 open(filename, "a") do file
     redirect_stdout(file) do
-        println(configuration["writeBackStrategy"])
+        println(config["writeBackStrategy"])
     end
 end
 for amount_of_gpus in [1, 2, 3, 4, 6, 12, 102]
-    configuration["amount_of_gpus"] = amount_of_gpus
-    b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+    config["amount_of_gpus"] = amount_of_gpus
+    b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
     b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
     open(filename, "a") do file
         redirect_stdout(file) do
-            println(configuration["amount_of_gpus"])
+            println(config["amount_of_gpus"])
             println(b_stats)
         end
     end
-    println(configuration["amount_of_gpus"])
+    println(config["amount_of_gpus"])
     println(b_stats)
 end
 
@@ -169,5 +169,5 @@ end
 #     b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 #     println(file, b_stats)
 # end
-# println(configuration["amount_of_gpus"])
+# println(config["amount_of_gpus"])
 # println(b_stats)

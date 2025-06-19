@@ -2,6 +2,36 @@ const dtol = 2.220446049250313e-16 * 1.0e3
 const xtol2_mul_16 = 0.2 * 0.2  * 16
 const xtol2 = 0.2 * 0.2
 
+function determine_quadrule_types(config, biop, elementAssemblyData, timingInfo)
+    timingInfo.time_quadrule_types += @elapsed begin
+        backend = config.backend
+        type = config.floatType
+
+        quadrule_types_gpu = KernelAbstractions.allocate(backend, Int8, elementAssemblyData.elements_length_tuple)
+        
+        abs2_mul_16 = abs2(biop.gamma) * 16
+        floatmax_type = floatmax(type)
+        
+        trial_elements_vertices_matrix = elementAssemblyData.elements_data[4]
+        trial_elements_volume_matrix = elementAssemblyData.elements_data[6]
+        test_elements_vertices_matrix = elementAssemblyData.elements_data[1]
+        
+        quadrule_determine_type(backend, 1024)(
+            quadrule_types_gpu,
+            abs2_mul_16,
+            test_elements_vertices_matrix,
+            trial_elements_vertices_matrix,
+            trial_elements_volume_matrix,
+            floatmax_type,
+            ndrange = elementAssemblyData.elements_length_tuple
+        )
+        
+        KernelAbstractions.synchronize(backend)
+    end
+
+    return quadrule_types_gpu
+end
+
 @kernel function permake_array_volume(out::AbstractArray, @Const(k2_mul_16::Float64), @Const(σ_volume::AbstractArray))
     j = @index(Global, Linear)
     out[j] = xtol2_mul_16/ max(k2_mul_16, 1/σ_volume[j])

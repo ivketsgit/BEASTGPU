@@ -14,14 +14,14 @@ include("../utils/backend.jl")
 
 const MiB = 2^20
 const GiB = 2^30
-configuration = Dict()
-configuration["writeBackStrategy"] = GpuWriteBackTrueInstance()
-configuration["amount_of_gpus"] = 1
-configuration["total_GPU_budget"] = 3 * GiB
-configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = doubleQuadRuleGpuStrategyShouldCalculateInstance()
-configuration["ShouldCalcInstance"] = ShouldCalcTrueInstance()
-configuration["GPU_budget_pipeline_result"] = 24 * GiB
-configuration["amount_of_producers"] = nthreads()
+config = Dict()
+config["writeBackStrategy"] = GpuWriteBackTrueInstance()
+config["amount_of_gpus"] = 1
+config["total_GPU_budget"] = 3 * GiB
+config["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = doubleQuadRuleGpuStrategyShouldCalculateInstance()
+config["ShouldCalcInstance"] = ShouldCalcTrueInstance()
+config["GPU_budget_pipeline_result"] = 24 * GiB
+config["amount_of_producers"] = nthreads()
 
 inv_density_factor = 40
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
@@ -52,7 +52,7 @@ time_logger["calc_sauter_schwab 3"] = []
 time_logger["calc_sauter_schwab 4"] = []
 
 samples = 3
-b = @benchmark assemble_gpu(S,X,X,configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+b = @benchmark assemble_gpu(S,X,X,config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 
 function extract_atomic_values(value)
     if all(x -> isa(x, Atomic{Float64}), value)

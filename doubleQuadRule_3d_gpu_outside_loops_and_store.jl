@@ -9,28 +9,28 @@ using StaticArrays
 include("store_with_kernel.jl")  
 
 @inline function doubleQuadRule_generic_3d_gpu_outside_loop!(result,
-    data,
+    elementAssemblyData,
     biop,
     wimps_and_womps, 
-    offset,
-    time_table, index, ndrange_,
-    floatType,
-    configuration,
+    offset, ndrange_,
+    timingInfo, index,
+    config,
     quadrule_types_gpu=0,
     SauterSchwabQuadratureCommonVertex=0, SauterSchwabQuadratureCommonEdge=0,SauterSchwabQuadratureCommonFace=0)
 
-    instance = configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"]
-    writeBackStrategy = configuration["writeBackStrategy"]
-    ShouldCalcInstance = configuration["ShouldCalcInstance"]
+    instance = config.InstancedoubleQuadRuleGpuStrategyShouldCalculate
+    writeBackStrategy = config.writeBackStrategy
+    ShouldCalcInstance = config.ShouldCalcInstance
 
-    backend = configuration["backend"]
-    store_index = load_data_(instance, backend, time_table, SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace)
+    backend = config.backend
+    floatType = config.floatType
+    store_index = load_data_(instance, backend, timingInfo.time_table, SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace)
 
     α = biop.alpha
     γ = biop.gamma
 
-    elements_data = data[1]
-    assembly_gpu_data = data[2]
+    elements_data = elementAssemblyData.elements_data
+    assembly_gpu_data = elementAssemblyData.assembly_data
     
 
     time_1 = @elapsed begin
@@ -49,10 +49,10 @@ include("store_with_kernel.jl")
                 floatmax(floatType),
                 ndrange = ndrange_)
             KernelAbstractions.synchronize(backend)
-            end
+        end
         wait(task)
     end
-    Threads.atomic_add!(time_table[2,index], time_1)
+    Threads.atomic_add!(timingInfo.time_table[2,index], time_1)
     # time_table[2,index] += time_1
 end
 
@@ -83,7 +83,6 @@ end
                 R = sqrt((womps_cart[K, I, 1] - wimps_cart[L, J, 1])^2 + 
                         (womps_cart[K, I, 2] - wimps_cart[L, J, 2])^2 + 
                         (womps_cart[K, I, 3] - wimps_cart[L, J, 3])^2 )
-
                 
 
                 j_αG = calc_j_αG(α, womps_weights[K, I], wimps_weights[L, J], R, γ, T, quadrule_types_gpu, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type)

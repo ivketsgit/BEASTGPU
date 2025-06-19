@@ -79,14 +79,14 @@ include("../utils/backend.jl")
 const MiB = 2^20
 const GiB = 2^30
 writeBackStrategy = GpuWriteBackTrueInstance()
-configuration = Dict()
-configuration["writeBackStrategy"] = writeBackStrategy
-configuration["amount_of_gpus"] = 1
-configuration["total_GPU_budget"] = 3 * GiB
-configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = doubleQuadRuleGpuStrategyShouldCalculateInstance()
-configuration["ShouldCalcInstance"] = ShouldCalcTrueInstance()
-configuration["GPU_budget_pipeline_result"] = 12 * GiB
-configuration["amount_of_producers"] = 16
+config = Dict()
+config["writeBackStrategy"] = writeBackStrategy
+config["amount_of_gpus"] = 1
+config["total_GPU_budget"] = 3 * GiB
+config["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = doubleQuadRuleGpuStrategyShouldCalculateInstance()
+config["ShouldCalcInstance"] = ShouldCalcTrueInstance()
+config["GPU_budget_pipeline_result"] = 12 * GiB
+config["amount_of_producers"] = 16
 
 
 
@@ -120,7 +120,7 @@ inv_density_factor = 1
 X = lagrangec0d1(Γ) 
 S = Helmholtz3D.singlelayer(wavenumber = 1.0)
 BEAST.assemble(S,X,X)
-assemble_gpu(S,X,X,configuration)
+assemble_gpu(S,X,X,config)
 
 
 
@@ -157,140 +157,140 @@ samples = 20
 
 
 
-# configuration["amount_of_gpus"] = 1
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# config["amount_of_gpus"] = 1
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
 #     redirect_stdout(file) do
-#         println(configuration["amount_of_gpus"]
+#         println(config["amount_of_gpus"]
 #         println(b_stats
 #     end
 # end
-# println(configuration["amount_of_gpus"]
+# println(config["amount_of_gpus"]
 # println(b_stats
 
 
 
-# configuration["amount_of_gpus"] = 5
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# config["amount_of_gpus"] = 5
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
 #     redirect_stdout(file) do
-#         println(configuration["amount_of_gpus"])
+#         println(config["amount_of_gpus"])
 #         println(b_stats)
 #     end
 # end
-# println(configuration["amount_of_gpus"]
+# println(config["amount_of_gpus"]
 # println(b_stats
 
      
 
-# configuration["amount_of_gpus"] = 16
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# config["amount_of_gpus"] = 16
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
 #     redirect_stdout(file) do
-#         println(configuration["amount_of_gpus"])
+#         println(config["amount_of_gpus"])
 #         println(b_stats)
 #     end
 # end
-# println(configuration["amount_of_gpus"]
+# println(config["amount_of_gpus"]
 # println(b_stats
 
 
-# configuration["amount_of_gpus"] = 64
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# config["amount_of_gpus"] = 64
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
 #     redirect_stdout(file) do
-#         println(configuration["amount_of_gpus"])
+#         println(config["amount_of_gpus"])
 #         println(b_stats)
 #     end
 # end
-# println(configuration["amount_of_gpus"])
+# println(config["amount_of_gpus"])
 # println(b_stats)
 
-# configuration["amount_of_gpus"] = 256
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# config["amount_of_gpus"] = 256
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
 #     redirect_stdout(file) do
-#         println(configuration["amount_of_gpus"])
+#         println(config["amount_of_gpus"])
 #         println(b_stats)
 #     end
 # end
-# println(configuration["amount_of_gpus"])
+# println(config["amount_of_gpus"])
 # println(b_stats)
 
 
 
-# configuration["amount_of_gpus"] = 1024
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# config["amount_of_gpus"] = 1024
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
-#     println(file, configuration["amount_of_gpus"])
+#     println(file, config["amount_of_gpus"])
 #     println(file, b_stats)
 # end
-# println(configuration["amount_of_gpus"])
+# println(config["amount_of_gpus"])
 # println(b_stats)
 
 writeBackStrategy = GpuWriteBackFalseInstance()
-configuration["writeBackStrategy"] = writeBackStrategy
+config["writeBackStrategy"] = writeBackStrategy
 
 
-configuration["amount_of_gpus"] = 1
+config["amount_of_gpus"] = 1
 open("testing/a_dump.txt", "a") do file
-    println(file, "\n", configuration["amount_of_gpus"], "\n")
+    println(file, "\n", config["amount_of_gpus"], "\n")
 end
-b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 open(filename, "a") do file
-    println(file, configuration["amount_of_gpus"])
+    println(file, config["amount_of_gpus"])
     println(file, b_stats)
 end
-println(configuration["amount_of_gpus"])
+println(config["amount_of_gpus"])
 println(b_stats)
 
 
-configuration["amount_of_gpus"] = 5
+config["amount_of_gpus"] = 5
 open("testing/a_dump.txt", "a") do file
-    println(file, "\n", configuration["amount_of_gpus"], "\n")
+    println(file, "\n", config["amount_of_gpus"], "\n")
 end
-b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 open(filename, "a") do file
-    println(file, configuration["amount_of_gpus"])
+    println(file, config["amount_of_gpus"])
     println(file, b_stats)
 end
-println(configuration["amount_of_gpus"])
+println(config["amount_of_gpus"])
 println(b_stats)
 
 
-configuration["amount_of_gpus"] = 16
+config["amount_of_gpus"] = 16
 open("testing/a_dump.txt", "a") do file
-    println(file, "\n", configuration["amount_of_gpus"], "\n")
+    println(file, "\n", config["amount_of_gpus"], "\n")
 end
-b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 open(filename, "a") do file
-    println(file, configuration["amount_of_gpus"])
+    println(file, config["amount_of_gpus"])
     println(file, b_stats)
 end
-println(configuration["amount_of_gpus"])
+println(config["amount_of_gpus"])
 println(b_stats)
 
 
-# configuration["amount_of_gpus"] = 2
+# config["amount_of_gpus"] = 2
 # open("testing/a_dump.txt", "a") do file
-#     println(file, "\n", configuration["amount_of_gpus"], "\n")
+#     println(file, "\n", config["amount_of_gpus"], "\n")
 # end
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
-#     println(file, configuration["amount_of_gpus"])
+#     println(file, config["amount_of_gpus"])
 #     println(file, b_stats)
 # end
-# println(configuration["amount_of_gpus"])
+# println(config["amount_of_gpus"])
 # println(b_stats)
 
 
@@ -299,17 +299,17 @@ println(b_stats)
 
 
 
-# configuration["amount_of_gpus"] = 4
+# config["amount_of_gpus"] = 4
 # open("testing/a_dump.txt", "a") do file
-#     println(file, "\n", configuration["amount_of_gpus"], "\n")
+#     println(file, "\n", config["amount_of_gpus"], "\n")
 # end
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
-#     println(file, configuration["amount_of_gpus"])
+#     println(file, config["amount_of_gpus"])
 #     println(file, b_stats)
 # end
-# println(configuration["amount_of_gpus"])
+# println(config["amount_of_gpus"])
 # println(b_stats)
 
  
@@ -321,84 +321,84 @@ println(b_stats)
 
 
 
-# configuration["amount_of_gpus"] = 8
+# config["amount_of_gpus"] = 8
 # open("testing/a_dump.txt", "a") do file
-#     println(file, "\n", configuration["amount_of_gpus"], "\n")
+#     println(file, "\n", config["amount_of_gpus"], "\n")
 # end    
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
-#     println(file, configuration["amount_of_gpus"])
+#     println(file, config["amount_of_gpus"])
 #     println(file, b_stats)
 # end
-# println(configuration["amount_of_gpus"])
+# println(config["amount_of_gpus"])
 # println(b_stats)
 
 
 
-# configuration["amount_of_gpus"] = 10
+# config["amount_of_gpus"] = 10
 # open("testing/a_dump.txt", "a") do file
-#     println(file, "\n", configuration["amount_of_gpus"], "\n")
+#     println(file, "\n", config["amount_of_gpus"], "\n")
 # end
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
-#     println(file, configuration["amount_of_gpus"])
+#     println(file, config["amount_of_gpus"])
 #     println(file, b_stats)
 # end
-# println(configuration["amount_of_gpus"])
+# println(config["amount_of_gpus"])
 # println(b_stats)
 
 
-# configuration["amount_of_gpus"] = 12
+# config["amount_of_gpus"] = 12
 # open("testing/a_dump.txt", "a") do file
-#     println(file, "\n", configuration["amount_of_gpus"], "\n")
+#     println(file, "\n", config["amount_of_gpus"], "\n")
 # end
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
-#     println(file, configuration["amount_of_gpus"])
+#     println(file, config["amount_of_gpus"])
 #     println(file, b_stats)
 # end
-# println(configuration["amount_of_gpus"])
-# println(b_stats)
-
-
-
-# configuration["amount_of_gpus"] = 14
-# open("testing/a_dump.txt", "a") do file
-#     println(file, "\n", configuration["amount_of_gpus"], "\n")
-# end
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
-# b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
-# open(filename, "a") do file
-#     println(file, configuration["amount_of_gpus"])
-#     println(file, b_stats)
-# end
-# println(configuration["amount_of_gpus"])
+# println(config["amount_of_gpus"])
 # println(b_stats)
 
 
 
-# configuration["amount_of_gpus"] = 16
+# config["amount_of_gpus"] = 14
 # open("testing/a_dump.txt", "a") do file
-#     println(file, "\n", configuration["amount_of_gpus"], "\n")
+#     println(file, "\n", config["amount_of_gpus"], "\n")
 # end
-# b = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
 # b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 # open(filename, "a") do file
-#     println(file, configuration["amount_of_gpus"])
+#     println(file, config["amount_of_gpus"])
 #     println(file, b_stats)
 # end
-# println(configuration["amount_of_gpus"])
+# println(config["amount_of_gpus"])
+# println(b_stats)
+
+
+
+# config["amount_of_gpus"] = 16
+# open("testing/a_dump.txt", "a") do file
+#     println(file, "\n", config["amount_of_gpus"], "\n")
+# end
+# b = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples evals=1 seconds=99999999999999999999999999999999999999999999999999
+# b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
+# open(filename, "a") do file
+#     println(file, config["amount_of_gpus"])
+#     println(file, b_stats)
+# end
+# println(config["amount_of_gpus"])
 # println(b_stats)
 
 
 
 # # open("testing/a_dump.txt", "a") do file
-# #     println(file, "\n", configuration["amount_of_gpus"], "\n")
+# #     println(file, "\n", config["amount_of_gpus"], "\n")
 # # end
-# # println(configuration["amount_of_gpus"])
+# # println(config["amount_of_gpus"])
 # # println(b_stats)
 
 
@@ -412,5 +412,5 @@ println(b_stats)
 #     b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
 #     println(file, b_stats)
 # end
-# println(configuration["amount_of_gpus"])
+# println(config["amount_of_gpus"])
 # println(b_stats)

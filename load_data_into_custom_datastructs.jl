@@ -1,4 +1,8 @@
-function load_data_into_custom_datastructs(test_elements_length_, pref_offset, trial_elements_length, test_elements, trial_elements, quadrule_types, counts)
+function load_data_into_custom_datastructs(elementAssemblyData, test_elements, trial_elements, quadrule_types, counts)
+    test_elements_length_ = elementAssemblyData.elements_length_tuple[1]
+    trial_elements_length = elementAssemblyData.elements_length_tuple[2]
+    pref_offset = elementAssemblyData.pref_offset
+
     array = []
     threads_array = []
     nthreads = Threads.nthreads()

@@ -12,18 +12,6 @@ using KernelAbstractions.Extras: @unroll
 using BEAST, CompScienceMeshes
 using StaticArrays
 
-function print_array(arr)
-    @print("\n[")
-    dims = size(arr)
-    for i in 1:dims[1]
-        for j in 1:dims[2]
-            @print(arr[i, j], ", ")
-        end
-        @print("; ")
-    end
-    @print("]")
-end
-
 
 @inline function calc_index_bitshifts(number)
     h = ((number - 1) >>> 8) + 1
@@ -184,11 +172,11 @@ function load_data_to_gpu(cpu_data, length, backend, T, test_vert, trail_vert, i
         vertices1_ = move(backend, Matrix{Float64}([1.0 0.0; 0.0 1.0; 0.0 0.0]))
         vertices2_ = move(backend, Matrix{Float64}([1.0 0.0; 0.0 1.0; 0.0 0.0]))
     
-        task = Threads.@spawn begin
+        # task = Threads.@spawn begin
             test_toll!(backend, 512)(ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, vertices1_, vertices2_, store_index, test_vert, trail_vert, T, ndrange = length)
             KernelAbstractions.synchronize(backend)
-        end
-        wait(task)
+        # end
+        # wait(task)
         # end
 
     end
@@ -204,10 +192,9 @@ end
 
 @kernel function sauterschwab_parameterized_gpu_outside_loop_kernel!(result,
     @Const(qps_), 
-    @Const(test_vert_), @Const(trail_vert_), @Const(test_tan_), @Const(trail_tan_), 
-    @Const(test_vol_), @Const(trail_vol_), 
-    @Const(ichart1_vert_), @Const(ichart2_vert_),  @Const(ichart1_tan_), @Const(ichart2_tan_), 
-    @Const(store_index_), 
+    @Const(test_vert_), @Const(test_tan_), @Const(test_vol_),
+    @Const(trail_vert_), @Const(trail_tan_), @Const(trail_vol_), 
+    @Const(ichart1_vert_), @Const(ichart2_vert_),  @Const(ichart1_tan_), @Const(ichart2_tan_), @Const(store_index_), 
     @Const(test_assembly_gpu_indexes), @Const(trial_assembly_gpu_indexes), @Const(test_assembly_gpu_values), @Const(trial_assembly_gpu_values),
     @Const(γ), @Const(α), @Const(T::SauterSchwabCustomGpuData), @Const(writeBackStrategy::GpuWriteBack))
 
@@ -292,12 +279,14 @@ end
 end
 
 function SauterSchwab!(SauterSchwabQuadratureCustomGpuData, qps_,
-    data,
-    biop, time_table,
-    store, length_return_matrix, time_to_store, elements_length_tuple, configuration)
+    elementAssemblyData,
+    biop, store, config, timingInfo)
 
-    writeBackStrategy = configuration["writeBackStrategy"]
-    backend = configuration["backend"]
+    writeBackStrategy = config.writeBackStrategy
+    backend = config.backend
+
+    length_return_matrix = elementAssemblyData.length_return_matrix
+    elements_length_tuple = elementAssemblyData.elements_length_tuple
 
     index = get_index_for_timing(SauterSchwabQuadratureCustomGpuData)
     instances = get_instance(SauterSchwabQuadratureCustomGpuData)
@@ -307,17 +296,15 @@ function SauterSchwab!(SauterSchwabQuadratureCustomGpuData, qps_,
 
 
     time_1 = @elapsed begin
-        # backend = KernelAbstractions.get_backend(result)
         length = size(SauterSchwabQuadratureCustomGpuData.store_index)[1]
         α = biop.alpha
         γ = biop.gamma
 
         
-        elements_data = data[1]
-        assembly_gpu_data = data[2]
+        elements_data = elementAssemblyData.elements_data
+        assembly_gpu_data = elementAssemblyData.assembly_data
 
-        test_vert, test_tan, test_vol = elements_data[1], elements_data[2], elements_data[3]
-        trail_vert, trail_tan, trail_vol = elements_data[4], elements_data[5], elements_data[6]
+        test_vert, trail_vert = elements_data[1], elements_data[4]
         store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = load_data_to_gpu(SauterSchwabQuadratureCustomGpuData, length, backend, instances, test_vert, trail_vert, index)
 
         qps_vector = getfield(qps_, 1)
@@ -330,7 +317,6 @@ function SauterSchwab!(SauterSchwabQuadratureCustomGpuData, qps_,
         qps = move(backend, q) 
     end
     
-    GC.@preserve qps store_index ichart1_vert ichart2_vert ichart1_tan ichart2_tan begin
     
     result = create_results_matrix_gpu(backend, length_return_matrix, elements_length_tuple, writeBackStrategy, SauterSchwabQuadratureCustomGpuData)
 
@@ -340,31 +326,25 @@ function SauterSchwab!(SauterSchwabQuadratureCustomGpuData, qps_,
     trial_assembly_gpu_values = assembly_gpu_data[4]
     
     time_2 = @elapsed begin
-        # qps, store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = move(backend, qps), move(backend, store_index), move(backend, ichart1_vert), move(backend, ichart2_vert), move(backend, ichart1_tan), move(backend, ichart2_tan)
-
-        
-
-        task = Threads.@spawn begin
+        # task = Threads.@spawn begin
             sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(result, qps, 
-            test_vert, trail_vert, test_tan, trail_tan, test_vol, trail_vol, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, store_index, 
+            elements_data..., 
+            ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, store_index, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
             γ, α, instances, writeBackStrategy, ndrange = (4 * 4 * 4 * 4 * length)) 
             KernelAbstractions.synchronize(backend)
-        end
-        wait(task)
+        # end
+        # wait(task)
     end
 
-    end 
-
     
-    time_to_store_ = @elapsed begin
+    time_to_store = @elapsed begin
         test_assembly_cpu_indexes = assembly_gpu_data[5]
         trial_assembly_cpu_indexes = assembly_gpu_data[6]
         write_to_compact_matrix(result, store, length_return_matrix, nothing, writeBackStrategy, SauterSchwabQuadratureCustomGpuData, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
     end
-    Threads.atomic_add!(time_to_store, time_to_store_)
-    
 
-    Threads.atomic_add!(time_table[1,index], time_1)
-    Threads.atomic_add!(time_table[2,index], time_2)
+    Threads.atomic_add!(timingInfo.time_to_store, time_to_store)
+    Threads.atomic_add!(timingInfo.time_table[1,index], time_1)
+    Threads.atomic_add!(timingInfo.time_table[2,index], time_2)
 end

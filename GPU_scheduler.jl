@@ -1,3 +1,5 @@
+include("doubleQuadRule_3d_gpu_outside_loops_and_store.jl")
+
 @inline function load_data_3(backend, floatType, elements_length_tuple, qd, pref_offet, length_1, length_2, length_3 = 3)
     t_1 = @elapsed begin
         womps_weights = Array{floatType}(undef, elements_length, length_1)
@@ -56,7 +58,10 @@
 end
 
 
-@inline function load_data(backend, type, elements_length, qd_points, pref_offset, length_1, length_2 = 3)
+@inline function load_data(config, elements_length, qd_points, pref_offset, length_1, length_2 = 3)
+    backend = config.backend
+    type = config.floatType
+
     weights = Array{type}(undef, elements_length, length_1)
     values = Array{type}(undef, elements_length, length_1, 3)
     cart =   Array{type}(undef,elements_length, length_1, 3)
@@ -84,47 +89,41 @@ end
     return weights, values, cart
 end
 
-@inline function gether_wimps_and_womps(backend, floatType, elements_length_tuple, qd, pref_offet, time_table)
+@inline function gether_wimps_and_womps(config, elementAssemblyData, qd, timingInfo)
     time = @elapsed begin
         length_1 = 3
         length_2 = 4
         
-        womps_weights, womps_values, womps_cart = load_data(backend, floatType, elements_length_tuple[1], qd.tpoints, pref_offet,  length_1)
-        wimps_weights, wimps_values, wimps_cart = load_data(backend, floatType, elements_length_tuple[2], qd.bpoints, 0, length_2)
+        elements_length_tuple = elementAssemblyData.elements_length_tuple
+        womps_weights, womps_values, womps_cart = load_data(config, elements_length_tuple[1], qd.tpoints, elementAssemblyData.pref_offset,  length_1)
+        wimps_weights, wimps_values, wimps_cart = load_data(config, elements_length_tuple[2], qd.bpoints, 0, length_2)
             
         wimps_and_womps = [womps_weights, womps_values, womps_cart, wimps_weights, wimps_values, wimps_cart]
     end
-    @show time
-    Threads.atomic_add!(time_table[1,1], time)
+    Threads.atomic_add!(timingInfo.time_table[1,1], time)
     return wimps_and_womps
 
 end
 
-@inline function schedule_kernel!(
-        backend, 
-        length_return_matrix, elements_length_tuple,
-        data, 
-        biop, quadrule_types_gpu, qd, floatType, store,
-        time_table, time_to_store, pref_offset,
-        configuration,
+@inline function schedule_kernel!(elementAssemblyData,
+        biop, quadrule_types_gpu, qd, store,
+        timingInfo,
+        config,
         writeBackStrategy::GpuWriteBackTrueInstance
     )
-    time_gatter_wimps_and_womps = @elapsed begin
-        wimps_and_womps = gether_wimps_and_womps(backend, floatType, elements_length_tuple, qd, pref_offset, time_table)
-    end
+    wimps_and_womps = gether_wimps_and_womps(config, elementAssemblyData, qd, timingInfo)
 
-    Threads.atomic_add!(time_table[1,1], time_gatter_wimps_and_womps)
-     
-    result_1 = create_results_matrix_gpu(backend, length_return_matrix, elements_length_tuple, configuration["writeBackStrategy"], configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"])
+    result_1 = create_results_matrix_gpu(config.backend, 
+                                        elementAssemblyData.length_return_matrix, elementAssemblyData.elements_length_tuple, 
+                                        config.writeBackStrategy, config.InstancedoubleQuadRuleGpuStrategyShouldCalculate)
 
     doubleQuadRule_generic_3d_gpu_outside_loop!(result_1,
-        data,
+        elementAssemblyData,
         biop,
         wimps_and_womps, 
-        (0, 0),
-        time_table, 1, elements_length_tuple,
-        floatType,
-        configuration,
+        (0, 0), elementAssemblyData.elements_length_tuple,
+        timingInfo, 1,
+        config,
         quadrule_types_gpu
     )
 end
@@ -132,91 +131,99 @@ end
         
             
 
-# @inline function schedule_kernel!(
-#         backend, 
-#         length_return_matrix, elements_length_tuple,
-#         data, 
-#         biop, quadrule_types_gpu, qd, floatType, store,
-#         time_table, time_to_store, pref_offset,
-#         configuration,
-#         writeBackStrategy::GpuWriteBackTrueInstance
-#     )
-
-#     length_1 = 3
-#     length_2 = 4
-    
-#     wimps_and_womps = gether_wimps_and_womps(backend, floatType, elements_length_tuple, qd, pref_offset, time_table)
-
-#     GPU_budget = configuration["GPU_budget_pipeline_result"]
-#     amount_of_producers = configuration["amount_of_producers"]
-
-#     GPU_spent_by_data = (length_1 * elements_length_tuple[1] + 2 * 3 * length_1 * elements_length_tuple[1]
-#                         + length_2 * elements_length_tuple[2] + 2 * 3 * length_2 * elements_length_tuple[2]) * sizeof(floatType) #in bytes
-#     GPU_spent_by_should_calc = 1 * elements_length_tuple[1] * elements_length_tuple[2]
-
-#     GPU_budget -= GPU_spent_by_data + GPU_spent_by_should_calc
-    
-
-#     size_submatrix = ceil(Int64, sqrt(GPU_budget / (amount_of_producers * 9 * sizeof(ComplexF64))))
-#     blocks_x = ceil(Int64, elements_length_tuple[1] / size_submatrix)
-#     blocks_y = ceil(Int64, elements_length_tuple[2] / size_submatrix)
-#     blocks = blocks_x
-
-#     ch_data = Channel{Tuple{Int64, Int64, Tuple{Int64, Int64}, Tuple{Int64, Int64}}}(blocks_x * blocks_y)  
-
-#     time = @elapsed begin
-#         producers = []
-#         file_lock = ReentrantLock()
-#         for i in 1:amount_of_producers
-#             p = Threads.@spawn producer(ch_data, backend,
-#                 data,
-#                 biop,
-#                 wimps_and_womps, 
-#                 time_table, quadrule_types_gpu, size_submatrix,
-#                 store, length_return_matrix, blocks,
-#                 floatType, configuration,
-#                 file_lock
-#             )
-#             push!(producers, p)
-#         end
-#         for j in 1:blocks_y
-#             for i in 1:blocks_x
-#                 ndrange = [size_submatrix, size_submatrix]
-#                 if i == blocks_x
-#                     ndrange[1] = elements_length_tuple[1] - (i - 1) * size_submatrix
-#                 end
-#                 if j == blocks_y
-#                     ndrange[2] = elements_length_tuple[2] - (j - 1) * size_submatrix
-#                 end
-#                 ndrange = Tuple(ndrange)
-
-#                 curr_offsets = ((i - 1) * size_submatrix, (j - 1) * size_submatrix)
-#                 item = (i, j, ndrange, curr_offsets)
-#                 put!(ch_data, item)
-#             end
-#         end
-
-#         close(ch_data)
-#         for p in producers
-#             wait(p)
-#         end
-#     end
-# end
+@inline function schedule_kernel!(elementAssemblyData,
+        biop, quadrule_types_gpu, qd, store,
+        timingInfo,
+        config,
+        writeBackStrategy::GpuWriteBackFalseInstance
 
 
-
-function producer(ch_data::Channel, backend,
-        data,
-        biop,
-        wimps_and_womps, 
-        time_table, quadrule_types_gpu, size_submatrix,
-        store, length_return_matrix, blocks,
-        floatType,
-        configuration,
-        file_lock
+        # backend, 
+        # length_return_matrix, elements_length_tuple,
+        # data, 
+        # biop, quadrule_types_gpu, qd, floatType, store,
+        # time_table, time_to_store, pref_offset,
+        # config,
+        # writeBackStrategy::GpuWriteBackFalseInstance
     )
-    result_cpu = KernelAbstractions.allocate(CPU(), eltype(ComplexF64), (size_submatrix, size_submatrix, 9))
-    result_cpu = pinned_arr(result_cpu, backend)
+
+    length_1 = 3
+    length_2 = 4
+    
+    wimps_and_womps = gether_wimps_and_womps(config, elementAssemblyData, qd, timingInfo)
+
+    GPU_budget = config.GPU_budget_pipeline_result
+    amount_of_producers = config.amount_of_producers
+
+    elements_length_tuple = elementAssemblyData.elements_length_tuple
+
+    GPU_spent_by_data = (length_1 * elements_length_tuple[1] + 2 * 3 * length_1 * elements_length_tuple[1]
+                        + length_2 * elements_length_tuple[2] + 2 * 3 * length_2 * elements_length_tuple[2]) * sizeof(config.floatType) #in bytes
+    GPU_spent_by_should_calc = 1 * elements_length_tuple[1] * elements_length_tuple[2]
+
+    GPU_budget -= GPU_spent_by_data + GPU_spent_by_should_calc
+    
+
+    size_submatrix = ceil(Int64, sqrt(GPU_budget / (amount_of_producers * 9 * sizeof(ComplexF64))))
+    blocks_x = ceil(Int64, elements_length_tuple[1] / size_submatrix)
+    blocks_y = ceil(Int64, elements_length_tuple[2] / size_submatrix)
+    blocks = blocks_x
+
+    ch_data = Channel{Tuple{Int64, Int64, Tuple{Int64, Int64}, Tuple{Int64, Int64}}}(blocks_x * blocks_y)  
+
+    time = @elapsed begin
+        producers = []
+        file_lock = ReentrantLock()
+        for i in 1:amount_of_producers
+            result_cpu_ = KernelAbstractions.allocate(CPU(), eltype(ComplexF64), (size_submatrix, size_submatrix, 9))
+            result_cpu = pinned_arr(result_cpu_, config.backend)
+
+            p = Threads.@spawn producer(ch_data,
+                elementAssemblyData,
+                biop,
+                wimps_and_womps, 
+                timingInfo, quadrule_types_gpu, size_submatrix,
+                store, blocks,
+                config, file_lock, result_cpu
+            )
+            push!(producers, p)
+        end
+        for j in 1:blocks_y
+            for i in 1:blocks_x
+                ndrange = [size_submatrix, size_submatrix]
+                if i == blocks_x
+                    ndrange[1] = elements_length_tuple[1] - (i - 1) * size_submatrix
+                end
+                if j == blocks_y
+                    ndrange[2] = elements_length_tuple[2] - (j - 1) * size_submatrix
+                end
+                ndrange = Tuple(ndrange)
+
+                curr_offsets = ((i - 1) * size_submatrix, (j - 1) * size_submatrix)
+                item = (i, j, ndrange, curr_offsets)
+                put!(ch_data, item)
+            end
+        end
+
+        close(ch_data)
+        for p in producers
+            wait(p)
+        end
+    end
+end
+
+
+
+function producer(ch_data::Channel,
+                elementAssemblyData,
+                biop,
+                wimps_and_womps, 
+                timingInfo, quadrule_types_gpu, size_submatrix,
+                store, blocks,
+                config, file_lock, result_cpu
+    )
+    backend = config.backend
+    # result_cpu_ = KernelAbstractions.allocate(CPU(), eltype(ComplexF64), (size_submatrix, size_submatrix, 9))
     results = KernelAbstractions.allocate(backend, ComplexF64, size_submatrix, size_submatrix, 9)
     t1 = 0
     t2 = 0
@@ -227,19 +234,16 @@ function producer(ch_data::Channel, backend,
             counter += 1
             t1 += @elapsed begin
                 i, j, ndrange, curr_offsets = item
+
                 doubleQuadRule_generic_3d_gpu_outside_loop!(results,
-                                    data,
+                                    elementAssemblyData,
                                     biop,
                                     wimps_and_womps, 
-                                    ((i - 1) * size_submatrix, (j - 1) * size_submatrix),
-                                    time_table, 1, ndrange, 
-                                    floatType,
-                                    configuration,
+                                    ((i - 1) * size_submatrix, (j - 1) * size_submatrix), ndrange,
+                                    timingInfo, 1, 
+                                    config,
                                     quadrule_types_gpu
                                 )
-
-                                
-
             end
             t2 += @elapsed begin
                 KernelAbstractions.copyto!(CPU(), result_cpu, results)
@@ -251,10 +255,11 @@ function producer(ch_data::Channel, backend,
             # write_to_compact_matrix(result_cpu, store, length_return_matrix, ndrange, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
             linear_index = (j - 1) * blocks + i
            
-            if typeof(configuration["writeBackStrategy"]) == GpuWriteBackFalseInstance
+            if typeof(config.writeBackStrategy) == GpuWriteBackFalseInstance
+                assembly_gpu_data = elementAssemblyData.assembly_data
                 test_assembly_cpu_indexes = assembly_gpu_data[5]
                 trial_assembly_cpu_indexes = assembly_gpu_data[6]
-                write_to_compact_matrix(result_cpu, store, length_return_matrix, ndrange, configuration["writeBackStrategy"], configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"], test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
+                write_to_compact_matrix(result_cpu, store, elementAssemblyData.length_return_matrix, ndrange, config.writeBackStrategy, config.InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
             end
             end
             # item = (result_cpu, ndrange, curr_offsets, i, j)
@@ -262,9 +267,9 @@ function producer(ch_data::Channel, backend,
             # println("produced ",i, " ",j)
         end
     end
-    if haskey(configuration, "gpu_schedular_print_filename")
+    if hasfield(typeof(config), :gpu_schedular_print_filename)
         lock(file_lock) do
-            open(configuration["gpu_schedular_print_filename"], "a") do file
+            open(config.gpu_schedular_print_filename, "a") do file
                 println(file, "[",t1, ", ", t2, ", ", t3, ", ", counter, "],")
             end
         end

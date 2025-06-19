@@ -26,20 +26,20 @@ writeBackStrategy = GpuWriteBackTrueInstance()
 # const B = 8
 const MiB = 2^20
 const GiB = 2^30
-configuration = Dict()
-configuration["writeBackStrategy"] = writeBackStrategy
-configuration["amount_of_gpus"] = 1
-configuration["total_GPU_budget"] = 3 * GiB
-configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = doubleQuadRuleGpuStrategyShouldCalculateInstance()
-configuration["ShouldCalcInstance"] = ShouldCalcTrueInstance()
-configuration["GPU_budget_pipeline_result"] = 12 * GiB
+config = Dict()
+config["writeBackStrategy"] = writeBackStrategy
+config["amount_of_gpus"] = 1
+config["total_GPU_budget"] = 3 * GiB
+config["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = doubleQuadRuleGpuStrategyShouldCalculateInstance()
+config["ShouldCalcInstance"] = ShouldCalcTrueInstance()
+config["GPU_budget_pipeline_result"] = 12 * GiB
 
 #warmup
 begin
     Γ_ = meshcuboid(1.0,1.0,1.0,0.5/1)
     X_ = lagrangec0d1(Γ_) 
     S_ = Helmholtz3D.singlelayer(wavenumber = 1.0)
-    assemble_gpu(S_,X_,X_,configuration)
+    assemble_gpu(S_,X_,X_,config)
 end
 
 samples_ = 200
@@ -59,7 +59,7 @@ for inv_density_factor in [33, 35, 37, 39, 40] # 15, 25, 30, 33, 35, 37, 39, 40
     Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
     X = lagrangec0d1(Γ) 
     S = Helmholtz3D.singlelayer(wavenumber = 1.0)
-    b  = @benchmark assemble_gpu($S,$X,$X,$configuration) samples=samples_ evals=1 seconds=9999999999999999999999999999999999999999999999999999999999999999999
+    b  = @benchmark assemble_gpu($S,$X,$X,$config) samples=samples_ evals=1 seconds=9999999999999999999999999999999999999999999999999999999999999999999
     
     b_stats = BenchmarkTools.mean(b).time / 10^9, BenchmarkTools.std(b).time / 10^9, minimum(b).time / 10^9, maximum(b).time / 10^9
             
@@ -69,7 +69,7 @@ for inv_density_factor in [33, 35, 37, 39, 40] # 15, 25, 30, 33, 35, 37, 39, 40
         end
     end
     # open("testing/results.txt", "a") do io
-    #     write(io, string("\n",inv_density_factor,  " ", samples, " ", configuration, " ", string(b_stats)))
+    #     write(io, string("\n",inv_density_factor,  " ", samples, " ", config, " ", string(b_stats)))
     # end
 end
 open("testing/results_atomic_vs_non_atomic.txt", "a") do file

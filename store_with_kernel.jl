@@ -40,6 +40,21 @@ end
     end
 end
 
+
+@inline function store_with_kernel_splits__!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes,
+                                             test_assembly_gpu_values, trial_assembly_gpu_values,
+                                             igd_Integrands, K, L, T::GpuWriteBackFalse, Global_number)
+    @unroll for k in 1:9
+        remainder, quotient = divrem(k - 1, 3)
+        real_part = igd_Integrands[(k - 1) * 256 * 2       + 1]
+        imag_part = igd_Integrands[(k - 1) * 256 * 2 + 256 + 1]
+        val = (real_part + imag_part * im) *
+              test_assembly_gpu_values[quotient + 1, K] *
+              trial_assembly_gpu_values[remainder + 1, L]
+        result[(Global_number - 1) >> 8 + 1, k] = val
+    end
+end
+
 @inline function store_with_kernel_register!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, K, L, x_offset, y_offset, R1,R2,R3,R4,R5,R6,R7,R8,R9, T::GpuWriteBackTrue)
     @atomic result[1, test_assembly_gpu_indexes[1, K], trial_assembly_gpu_indexes[1, L]] += real(R1) * test_assembly_gpu_values[1, K] * trial_assembly_gpu_values[1, L]
     @atomic result[2, test_assembly_gpu_indexes[1, K], trial_assembly_gpu_indexes[1, L]] += imag(R1) * test_assembly_gpu_values[1, K] * trial_assembly_gpu_values[1, L]

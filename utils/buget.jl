@@ -1,6 +1,6 @@
 function budget(test_elements_length, trial_elements_length, type,
-    configuration)
-    GPU_budget = configuration["total_GPU_budget"]
+    config)
+    GPU_budget = config["total_GPU_budget"]
 
             
     calc_budget =   3 * test_elements_length * sizeof(type)                                                    # sizeof(test_assembly_gpu_values) 
