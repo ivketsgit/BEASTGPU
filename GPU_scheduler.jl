@@ -1,4 +1,4 @@
-include("doubleQuadRule_3d_gpu_outside_loops_and_store.jl")
+include("doubleQuadRuleMainCase.jl")
 
 @inline function load_data_3(backend, floatType, elements_length_tuple, qd, pref_offet, length_1, length_2, length_3 = 3)
     t_1 = @elapsed begin
@@ -117,7 +117,7 @@ end
                                         elementAssemblyData.length_return_matrix, elementAssemblyData.elements_length_tuple, 
                                         config.writeBackStrategy, config.InstancedoubleQuadRuleGpuStrategyShouldCalculate)
 
-    doubleQuadRule_generic_3d_gpu_outside_loop!(result_1,
+    doubleQuadRuleMainCase!(result_1,
         elementAssemblyData,
         biop,
         wimps_and_womps, 
@@ -235,7 +235,7 @@ function producer(ch_data::Channel,
             t1 += @elapsed begin
                 i, j, ndrange, curr_offsets = item
 
-                doubleQuadRule_generic_3d_gpu_outside_loop!(results,
+                doubleQuadRuleMainCase!(results,
                                     elementAssemblyData,
                                     biop,
                                     wimps_and_womps, 

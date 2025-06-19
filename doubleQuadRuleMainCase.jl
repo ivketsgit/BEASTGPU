@@ -8,7 +8,7 @@ using KernelAbstractions: @atomic
 using StaticArrays
 include("store_with_kernel.jl")  
 
-@inline function doubleQuadRule_generic_3d_gpu_outside_loop!(result,
+@inline function doubleQuadRuleMainCase!(result,
     elementAssemblyData,
     biop,
     wimps_and_womps, 
@@ -35,7 +35,7 @@ include("store_with_kernel.jl")
 
     time_1 = @elapsed begin
         task = Threads.@spawn begin
-            combined_kernel_temp_outside_loops_linear_index!(backend)(
+            doubleQuadRuleMainCaseKernel!(backend)(
                 result,
                 assembly_gpu_data[1:4]..., #test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values,
                 γ, α,
@@ -57,7 +57,7 @@ include("store_with_kernel.jl")
 end
 
 
-@kernel function combined_kernel_temp_outside_loops_linear_index!(result,
+@kernel function doubleQuadRuleMainCaseKernel!(result,
     @Const(test_assembly_gpu_indexes), @Const(trial_assembly_gpu_indexes), @Const(test_assembly_gpu_values), @Const(trial_assembly_gpu_values),
     @Const(γ), @Const(α),
     @Const(womps_weights), @Const(womps_values), @Const(womps_cart),
