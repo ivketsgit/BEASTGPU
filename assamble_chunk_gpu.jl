@@ -130,7 +130,7 @@ function assemblechunk_body_gpu!(biop,
 
         for i in range_test
             #  for j in range_trail
-            @sync begin
+            # @sync begin
                 #set data for loop
                 elementAssemblyData = create_element_assembly_data!(i, indexes, offset, pref_offset, config, 
                                                                     test_elements_data_original, test_assembly_data, trial_assembly_data,
@@ -138,28 +138,28 @@ function assemblechunk_body_gpu!(biop,
                                                                     trial_elements_length, length_return_matrix)
 
                 #start calculations
-                quadrule_types_gpu = determine_quadrule_types(config, biop, elementAssemblyData, timingInfo)
+                quadrule_types_gpu, sizes = determine_quadrule_types(config, biop, elementAssemblyData, timingInfo)
                 
-                @async begin
+                # @async begin
                     nonMainCaseQuadratures!(qd, elementAssemblyData, quadrule_types_gpu, config, 
-                        test_elements, trial_elements, counts, biop, store,
+                        test_elements, trial_elements, counts, biop, store, sizes,
                         timingInfo)
-                end
+                # end
                 
-                @async begin
+                # @async begin
                     timingInfo.time_double_int += @elapsed begin
                         schedule_kernel!(elementAssemblyData,
                             biop, quadrule_types_gpu, qd, store,
                             timingInfo, config, config.writeBackStrategy,
                         )  
                     end
-                end
+                # end
                 pref_offset = elementAssemblyData.offset
-            end
+            # end
         end 
 
         log_to_config(config, timingInfo)
     end
-    # @show time_all
-    # print("\n")
+    @show time_all
+    print("\n")
 end

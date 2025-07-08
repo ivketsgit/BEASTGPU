@@ -16,6 +16,7 @@ struct GPUConfiguration
     backend::CUDABackend
     timeLogger::TimeLogger
     floatType::Type
+    sortOnCPU::Bool
 end
 
 # Helper constructor function
@@ -36,7 +37,8 @@ function GPUConfiguration()
         true,
         CUDABackend(),
         TimeLogger(),
-        Float64
+        Float64,
+        true
     )
 end
 

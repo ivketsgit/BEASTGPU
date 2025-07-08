@@ -1,3 +1,5 @@
+using Profile
+
 function copy_to_CPU(CPU_array, GPU_array, backend, type, chunk_size, config)
     # nthreads = Int(round(Threads.nthreads() / 2))
     nthreads = Threads.nthreads()
@@ -8,13 +10,18 @@ function copy_to_CPU(CPU_array, GPU_array, backend, type, chunk_size, config)
     # wanted_size = 1024*1024 * 100 * 4
     # chunk_size = Int(round(wanted_size / sizeof(type)))
     # chunk_size = 1024*1024
+    resize!(buffers, nthreads)
     time_allocation = @elapsed begin
         # if config["makeCompexWithGPU"] == true
         #     buffers = config["pinned_buffers"]
-        # else
+        # else  
+        # Profile.clear()
+        # @profile begin
             for n in 1:nthreads
-                push!(buffers, pinned_arr(Array{type}(undef, chunk_size), backend))
+                buffers[n] = pinned_arr(Array{type}(undef, chunk_size), backend)
             end
+        # end
+        # Profile.print()
         # end
     end
     @show time_allocation

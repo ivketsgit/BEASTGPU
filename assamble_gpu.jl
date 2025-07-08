@@ -75,11 +75,8 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
     assemble_gpu!(operator, test_functions, trial_functions, config, nothing, threading; quadstrat, split)
 
     
-    time_allocate = @elapsed begin
-        gpu_array = gpu_results_cache[1]
-        GiB = prod(size(gpu_array)) * sizeof(Float64) / 2^30
-    end
-    @show time_allocate
+    gpu_array = gpu_results_cache[1]
+    GiB = prod(size(gpu_array)) * sizeof(Float64) / 2^30
     
     if config.makeCompexWithGPU == true
         time_make_complex = @elapsed begin

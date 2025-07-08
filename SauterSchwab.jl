@@ -190,6 +190,25 @@ function load_data_to_gpu(cpu_data, length, backend, T, test_vert, trail_vert, i
     return store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan
 end
 
+function load_data_to_gpu_2(store_index, length, backend, T, test_vert, trail_vert, index) 
+    time_sauter_schwab_overhead_and_test_toll = @elapsed begin
+
+        ichart1_vert = KernelAbstractions.allocate(backend, Float64, length, 3, 2)
+        ichart2_vert = KernelAbstractions.allocate(backend, Float64, length, 3, 2)
+        ichart1_tan = KernelAbstractions.allocate(backend, Float64, length, 2, 2)
+        ichart2_tan = KernelAbstractions.allocate(backend, Float64, length, 2, 2)
+        
+        vertices1_ = move(backend, Matrix{Float64}([1.0 0.0; 0.0 1.0; 0.0 0.0]))
+        vertices2_ = move(backend, Matrix{Float64}([1.0 0.0; 0.0 1.0; 0.0 0.0]))
+    
+
+        test_toll!(backend, 512)(ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, vertices1_, vertices2_, store_index, test_vert, trail_vert, T, ndrange = length)
+        KernelAbstractions.synchronize(backend)
+
+    end
+    return ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan
+end
+
 @kernel function sauterschwab_parameterized_gpu_outside_loop_kernel!(result,
     @Const(qps_), 
     @Const(test_vert_), @Const(test_tan_), @Const(test_vol_),
@@ -305,8 +324,86 @@ function SauterSchwab!(SauterSchwabQuadratureCustomGpuData, qps_,
         assembly_gpu_data = elementAssemblyData.assembly_data
 
         test_vert, trail_vert = elements_data[1], elements_data[4]
+        
         store_index, ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = load_data_to_gpu(SauterSchwabQuadratureCustomGpuData, length, backend, instances, test_vert, trail_vert, index)
+        
+        qps_vector = getfield(qps_, 1)
+        q = Array{Float64}(undef,4,2)
+        for j in 1:2
+            for i in 1:4
+                q[i,j] = qps_vector[i][j]
+            end
+        end
+        qps = move(backend, q) 
+    end
+    
+    
+    result = create_results_matrix_gpu(backend, length_return_matrix, elements_length_tuple, writeBackStrategy, SauterSchwabQuadratureCustomGpuData)
 
+    test_assembly_gpu_indexes = assembly_gpu_data[1]
+    trial_assembly_gpu_indexes = assembly_gpu_data[2]
+    test_assembly_gpu_values = assembly_gpu_data[3]
+    trial_assembly_gpu_values = assembly_gpu_data[4]
+    
+    time_2 = @elapsed begin
+        # task = Threads.@spawn begin
+            sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(result, qps, 
+            elements_data..., 
+            ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, store_index, 
+            test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
+            γ, α, instances, writeBackStrategy, ndrange = (4 * 4 * 4 * 4 * length)) 
+            KernelAbstractions.synchronize(backend)
+        # end
+        # wait(task)
+    end
+
+    
+    time_to_store = @elapsed begin
+        test_assembly_cpu_indexes = assembly_gpu_data[5]
+        trial_assembly_cpu_indexes = assembly_gpu_data[6]
+        write_to_compact_matrix(result, store, length_return_matrix, nothing, writeBackStrategy, SauterSchwabQuadratureCustomGpuData, test_assembly_cpu_indexes, trial_assembly_cpu_indexes)
+    end
+
+    Threads.atomic_add!(timingInfo.time_to_store, time_to_store)
+    Threads.atomic_add!(timingInfo.time_table[1,index], time_1)
+    Threads.atomic_add!(timingInfo.time_table[2,index], time_2)
+end
+
+
+function SauterSchwab_2!(SauterSchwabQuadratureCustomGpuData, t, l, qps_,
+    elementAssemblyData,
+    biop, store, config, timingInfo)
+
+    writeBackStrategy = config.writeBackStrategy
+    backend = config.backend
+
+    length_return_matrix = elementAssemblyData.length_return_matrix
+    elements_length_tuple = elementAssemblyData.elements_length_tuple
+
+    index = get_index_for_timing(SauterSchwabQuadratureCustomGpuData)
+    instances = get_instance(SauterSchwabQuadratureCustomGpuData)
+    # instances = typeof(SauterSchwabQuadratureCustomGpuData).parameters[1]
+
+    # @show instances
+
+
+    time_1 = @elapsed begin
+        α = biop.alpha
+        γ = biop.gamma
+
+        
+        elements_data = elementAssemblyData.elements_data
+        assembly_gpu_data = elementAssemblyData.assembly_data
+
+        test_vert, trail_vert = elements_data[1], elements_data[4]
+         
+
+        length = l
+
+        ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan = load_data_to_gpu_2(t, length, backend, instances, test_vert, trail_vert, index)
+        store_index = t
+        
+            
         qps_vector = getfield(qps_, 1)
         q = Array{Float64}(undef,4,2)
         for j in 1:2

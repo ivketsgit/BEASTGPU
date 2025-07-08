@@ -50,7 +50,7 @@ function sort_quadrule_into_custom_datastruct(SauterSchwabQuadratureCommonVertex
             qt = quadrule_types[p, q]
             if qt != 0
                 cpu_data = transformHitsToSauterSchwabQuadrature(qt, SauterSchwabQuadratureCommonVertex, SauterSchwabQuadratureCommonEdge, SauterSchwabQuadratureCommonFace)
-                add_element(cpu_data, SVector(p, q))
+                add_element(cpu_data, SVector(pref_offset + p, q))
             end
         end
     end

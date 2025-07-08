@@ -2,9 +2,10 @@ using BEAST
 using CompScienceMeshes
 using BenchmarkTools
 using Serialization
-using Logging
 
-#global_logger(ConsoleLogger(stderr, Logging.Info))
+using ImageShow  
+# using Images, ImageView
+using Plots, Profile, FlameGraphs    
 
 
 include("assamble_gpu.jl")
@@ -27,7 +28,7 @@ const GiB = 2^30
 CUDA.allowscalar(false)
 config = GPUConfiguration(
         GpuWriteBackTrueInstance(),
-        2,
+        1,
         3 * GiB,
         doubleQuadRuleGpuStrategyShouldCalculateInstance(),
         ShouldCalcTrueInstance(),
@@ -36,11 +37,12 @@ config = GPUConfiguration(
         true,
         CUDABackend(),
         TimeLogger(),
-        Float64
+        Float64,
+        false
     )
 
 
-inv_density_factor = 1
+inv_density_factor = 40
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
 # Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor; generator=:gmsh)
 X = lagrangec0d1(Γ) 
@@ -63,27 +65,52 @@ filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
 #    println("Elapsed time control: ", time)
 #    println("")
 # end
-
-
+# Profile.init(n = 10_000_000) 
+# Profile.clear(); 
+# assemble_gpu(S,X,X,config,config.writeBackStrategy)
 
 let time = @elapsed begin
         M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
+
+        
+# using Profile
+#                     Profile.init(delay = 0.001)  # 1ms between samples
+
+#                     Profile.clear()              # Clear any old data
+#                     @profile begin
+#                         assemble_gpu(S,X,X,config,config.writeBackStrategy)
+#                     end
+
+#                     Profile.print()              # Or use ProfileView.jl for a GUI
+
+#                     Profile.print(format=:flat)
+
+        # 
+        # @profview assemble_gpu(S,X,X,config,config.writeBackStrategy)
+
+        
+        
+        # @profview assemble_gpu(S,X,X,config,config.writeBackStrategy)
+
+        # @profview_allocs assemble_gpu(S,X,X,config,config.writeBackStrategy) sample_rate = 1
+        
+        # @profile for _ in 1:1000
+        #     assemble_gpu(S, X, X, config, config.writeBackStrategy)
+        # end
     end 
     println("Elapsed time: ", time)
     println("")
 end
+# Profile.print()     
+# g = flamegraph()
+# g = flamegraph(C=true)
+# img = flamepixels(g)
+# save("flamegraph.png", img)
+# display(img)
+# imshow(img)
+print_means(config.timeLogger)
 
-# print_means(config.timeLogger)
 
-
-# let time = @elapsed begin
-#         M = assemble_gpu(S,X,X,writeBackStrategy,2)
-#     end 
-#     println("Elapsed time: ", time)
-#     println("")
-# end
-# @show M_ref
-# @show M
 
 M_ref = open(filename, "r") do io
     deserialize(io)
