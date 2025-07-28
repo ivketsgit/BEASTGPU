@@ -54,16 +54,18 @@ function nonMainCaseQuadratures!(qd, elementAssemblyData, quadrule_types_gpu, co
         end
 
         timingInfo.time_sauter_schwab += @elapsed begin
-            @sync begin
-                @async SauterSchwab!(CommonVertex_data, SauterSchwabQuadrature.CommonVertex(qd.gausslegendre[1]), 
-                    elementAssemblyData, biop, store, config, timingInfo)
+            task1 = Threads.@spawn SauterSchwab!(CommonVertex_data, SauterSchwabQuadrature.CommonVertex(qd.gausslegendre[1]), 
+                elementAssemblyData, biop, store, config, timingInfo)
 
-                @async SauterSchwab!(CommonEdge_data, SauterSchwabQuadrature.CommonEdge(qd.gausslegendre[2]),
-                    elementAssemblyData, biop, store, config, timingInfo)
+            task2 = Threads.@spawn SauterSchwab!(CommonEdge_data, SauterSchwabQuadrature.CommonEdge(qd.gausslegendre[2]),
+                elementAssemblyData, biop, store, config, timingInfo)
 
-                @async SauterSchwab!(CommonFace_data, SauterSchwabQuadrature.CommonFace(qd.gausslegendre[3]),
-                    elementAssemblyData, biop, store, config, timingInfo)
-            end
+            task3 = Threads.@spawn SauterSchwab!(CommonFace_data, SauterSchwabQuadrature.CommonFace(qd.gausslegendre[3]),
+                elementAssemblyData, biop, store, config, timingInfo)
+            
+            wait(task1)
+            wait(task2)
+            wait(task3)
         end
 
     else
@@ -101,6 +103,42 @@ function nonMainCaseQuadratures!(qd, elementAssemblyData, quadrule_types_gpu, co
     end
 
     
+
+
+    
+    # if config.filename_benchmark != ""
+    #     f = function()
+    #         if config.sortOnCPU == true
+    #             timingInfo.time_transfer_to_CPU += @elapsed begin
+    #                 quadrule_types = Array{Int8}(undef, elementAssemblyData.elements_length_tuple)
+                    
+    #                 quadrule_types = copy_to_CPU(quadrule_types, quadrule_types_gpu, backend, Int8, Int(round(1024 * 1024 * 100 * 1.5)), config)
+    #             end
+
+    #             timingInfo.time_double_forloop += @elapsed begin  
+    #                 CommonVertex_data, CommonEdge_data, CommonFace_data = load_data_into_custom_datastructs(elementAssemblyData, test_elements, trial_elements, quadrule_types, counts)
+    #             end
+
+    #         else
+    #             sizes = Array(sizes)
+
+    #             CommonVertex_data_ = KernelAbstractions.allocate(backend, Int64, sizes[1], 2)
+    #             CommonEdge_data_ = KernelAbstractions.allocate(backend, Int64, sizes[2], 2)
+    #             CommonFace_data_ = KernelAbstractions.allocate(backend, Int64, sizes[3], 2)
+
+
+    #             pref_offset = elementAssemblyData.pref_offset
+
+    #             counters = KernelAbstractions.ones(backend, Int64, 3)
+    #             time_sort = @elapsed begin
+    #                 sort_data(backend)(CommonVertex_data_, CommonEdge_data_, CommonFace_data_, counters, pref_offset, quadrule_types_gpu, ndrange = elementAssemblyData.elements_length_tuple)
+    #                 KernelAbstractions.synchronize(backend)
+    #             end
+    #         end
+    #     end
+
+    #     manual_benchmark(f, n=100,filename=config.filename_benchmark*"/sortCPU.txt", appendOrWrite="a")
+    # end
     
     # end
     # wait(task)

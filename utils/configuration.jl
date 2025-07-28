@@ -17,6 +17,7 @@ struct GPUConfiguration
     timeLogger::TimeLogger
     floatType::Type
     sortOnCPU::Bool
+    filename_benchmark::String
 end
 
 # Helper constructor function
@@ -38,7 +39,8 @@ function GPUConfiguration()
         CUDABackend(),
         TimeLogger(),
         Float64,
-        true
+        false,
+        filename_benchmark = ""
     )
 end
 

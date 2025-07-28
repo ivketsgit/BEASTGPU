@@ -1,8 +1,0 @@
-Manual Benchmark of duration 39.903027057647705 over 100 runs:
-Min: 0.395362525 s
-Mean: 0.39902714199 s
-Max: 0.423966408 s
-Std: 0.003973987498884301 s
-2nd Quartile (Median): 0.398775243 s
-3rd Quartile (75th percentile): 0.40014364225 s
-

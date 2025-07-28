@@ -38,7 +38,8 @@ config = GPUConfiguration(
         CUDABackend(),
         TimeLogger(),
         Float64,
-        false
+        false,
+        ""
     )
 
 

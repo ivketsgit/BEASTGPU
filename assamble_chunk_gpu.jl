@@ -157,11 +157,9 @@ function assemblechunk_body_gpu!(biop,
 
 
                 quadrule_types_gpu, sizes = determine_quadrule_types(config, biop, elementAssemblyData, timingInfo)
-                # manual_benchmark(determine_quadrule_types; args=(config, biop, elementAssemblyData, timingInfo), n=100,filename="data/GPU/24/determine_quadrule_types.txt", appendOrWrite="a")
-
-                # @benchmark begin 
-                #     quadrule_types_gpu, sizes = determine_quadrule_types($config, $biop, $elementAssemblyData, $timingInfo)
-                # end samples=10 evals=1 seconds=99999999999999999999999999999999999999999999999999
+                if config.filename_benchmark != ""
+                    manual_benchmark(determine_quadrule_types; args=(config, biop, elementAssemblyData, timingInfo), n=100,filename=config.filename_benchmark*"/quadrule_types_gpu.txt", appendOrWrite="a")
+                end
 
 
                 
