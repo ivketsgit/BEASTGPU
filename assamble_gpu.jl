@@ -30,7 +30,7 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
     
     backend = config.backend
 
-
+    
     result_cpu = Array{Float64}(undef, 1)  
     result_complex = Array{ComplexF64}(undef, 1)
     result_complex_array = []
@@ -74,7 +74,7 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
 
     assemble_gpu!(operator, test_functions, trial_functions, config, nothing, threading; quadstrat, split)
 
-    
+
     gpu_array = gpu_results_cache[1]
     GiB = prod(size(gpu_array)) * sizeof(Float64) / 2^30
     
@@ -151,8 +151,8 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
     end
 
     empty!(gpu_results_cache)
-    GC.gc()
-    
+
+
     if config.timeLogger !== nothing
         log_time(config.timeLogger, "transfer results to CPU", time_to_transfer_with_copy)
         log_time(config.timeLogger, "create results as complex numbers", time_make_complex)

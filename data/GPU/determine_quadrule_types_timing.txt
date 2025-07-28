@@ -1,0 +1,5 @@
+Manual Benchmark over 1000 runs:
+  Min: 395.777523 ms
+  Mean: 404.9575111610738 ms
+  Max: 602.530239 ms
+  Std: 19.524291081020944 ms

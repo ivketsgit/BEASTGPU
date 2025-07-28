@@ -1,0 +1,128 @@
+Manual Benchmark of duration 3652.368161916733 over 48 runs:
+Min: 70.447188875 s
+Mean: 76.02775495577085 s
+Max: 83.469332581 s
+Std: 2.693712367459647 s
+2nd Quartile (Median): 76.175858812 s
+3rd Quartile (75th percentile): 77.39283875950001 s
+
+Manual Benchmark of duration 3651.5664670467377 over 47 runs:
+Min: 71.680653574 s
+Mean: 77.29576174538299 s
+Max: 101.674877536 s
+Std: 5.102248563762763 s
+2nd Quartile (Median): 76.408613039 s
+3rd Quartile (75th percentile): 77.846075633 s
+
+Manual Benchmark of duration 3649.783856868744 over 43 runs:
+Min: 71.566379278 s
+Mean: 83.52665447144186 s
+Max: 110.234795026 s
+Std: 10.592403977063732 s
+2nd Quartile (Median): 78.09855518 s
+3rd Quartile (75th percentile): 93.71165758449999 s
+
+Manual Benchmark of duration 3680.429669857025 over 35 runs:
+Min: 87.157721904 s
+Mean: 105.12714355617143 s
+Max: 124.396821219 s
+Std: 8.5018335845613 s
+2nd Quartile (Median): 105.608551555 s
+3rd Quartile (75th percentile): 111.8495821075 s
+
+Manual Benchmark of duration 3612.8931391239166 over 34 runs:
+Min: 92.90840229 s
+Mean: 106.0911895615294 s
+Max: 130.887023503 s
+Std: 9.012782934153199 s
+2nd Quartile (Median): 105.88111309749999 s
+3rd Quartile (75th percentile): 111.76105014225 s
+
+Manual Benchmark of duration 3646.7248969078064 over 34 runs:
+Min: 90.075552632 s
+Mean: 106.363488353 s
+Max: 121.403377152 s
+Std: 7.9926828748066 s
+2nd Quartile (Median): 106.6823891895 s
+3rd Quartile (75th percentile): 113.28441570425 s
+
+Manual Benchmark of duration 3647.166074991226 over 34 runs:
+Min: 92.424315239 s
+Mean: 107.22692677688235 s
+Max: 131.40114247 s
+Std: 9.594512671354959 s
+2nd Quartile (Median): 107.66491244950001 s
+3rd Quartile (75th percentile): 113.35612779224999 s
+
+Manual Benchmark of duration 3618.483186006546 over 36 runs:
+Min: 79.069141843 s
+Mean: 99.57156764522223 s
+Max: 131.364330396 s
+Std: 10.354783962455324 s
+2nd Quartile (Median): 99.335916419 s
+3rd Quartile (75th percentile): 103.33086424425001 s
+
+Manual Benchmark of duration 3661.725003004074 over 34 runs:
+Min: 85.309707486 s
+Mean: 107.68409069820588 s
+Max: 126.681216509 s
+Std: 10.01761424782391 s
+2nd Quartile (Median): 108.29902732650001 s
+3rd Quartile (75th percentile): 113.80628222925 s
+
+Manual Benchmark of duration 3660.8269760608673 over 37 runs:
+Min: 75.991023297 s
+Mean: 98.36173229494594 s
+Max: 118.982265852 s
+Std: 10.271894734083698 s
+2nd Quartile (Median): 96.42330315 s
+3rd Quartile (75th percentile): 105.306976822 s
+
+Manual Benchmark of duration 3650.81104183197 over 34 runs:
+Min: 84.920806623 s
+Mean: 107.10915299991177 s
+Max: 128.076123981 s
+Std: 10.035895230275296 s
+2nd Quartile (Median): 108.412036133 s
+3rd Quartile (75th percentile): 113.1385791365 s
+
+Manual Benchmark of duration 3652.5592641830444 over 33 runs:
+Min: 90.260018572 s
+Mean: 110.40846286021211 s
+Max: 137.346325719 s
+Std: 11.298653851081694 s
+2nd Quartile (Median): 109.288089057 s
+3rd Quartile (75th percentile): 117.04727076 s
+
+Manual Benchmark of duration 3650.4515120983124 over 34 runs:
+Min: 84.990976597 s
+Mean: 106.48501076464706 s
+Max: 123.241849395 s
+Std: 9.700617124350206 s
+2nd Quartile (Median): 107.359654432 s
+3rd Quartile (75th percentile): 112.8137220735 s
+
+Manual Benchmark of duration 3640.878468990326 over 34 runs:
+Min: 91.995711759 s
+Mean: 106.70912479032353 s
+Max: 123.742931782 s
+Std: 8.822277836234035 s
+2nd Quartile (Median): 108.822246936 s
+3rd Quartile (75th percentile): 112.5280348465 s
+
+Manual Benchmark of duration 3706.0055940151215 over 34 runs:
+Min: 85.705674184 s
+Mean: 108.63890982235296 s
+Max: 126.205837271 s
+Std: 9.67748349406198 s
+2nd Quartile (Median): 110.14164474200001 s
+3rd Quartile (75th percentile): 115.55408935275 s
+
+Manual Benchmark of duration 3642.099166870117 over 41 runs:
+Min: 72.135499826 s
+Mean: 88.8316524089756 s
+Max: 107.252025969 s
+Std: 8.268756641341792 s
+2nd Quartile (Median): 89.170017442 s
+3rd Quartile (75th percentile): 92.660014571 s
+

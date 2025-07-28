@@ -42,7 +42,7 @@ config = GPUConfiguration(
     )
 
 
-inv_density_factor = 40
+inv_density_factor = 24
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
 # Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor; generator=:gmsh)
 X = lagrangec0d1(Γ) 
@@ -101,6 +101,7 @@ let time = @elapsed begin
     println("Elapsed time: ", time)
     println("")
 end
+GC.gc()
 # Profile.print()     
 # g = flamegraph()
 # g = flamegraph(C=true)
@@ -108,16 +109,22 @@ end
 # save("flamegraph.png", img)
 # display(img)
 # imshow(img)
-print_means(config.timeLogger)
 
 
 
-M_ref = open(filename, "r") do io
-    deserialize(io)
-end
 
-min_M_row = Array{Float64}(undef, size(M)[1])
-@threads for col in 1:size(M)[1]
-    min_M_row[col] = abs.(M_ref[col] .- M[col])
-end
-@show maximum(min_M_row)
+
+
+# print_means(config.timeLogger)
+
+
+
+# M_ref = open(filename, "r") do io
+#     deserialize(io)
+# end
+
+# min_M_row = Array{Float64}(undef, size(M)[1])
+# @threads for col in 1:size(M)[1]
+#     min_M_row[col] = abs.(M_ref[col] .- M[col])
+# end
+# @show maximum(min_M_row)

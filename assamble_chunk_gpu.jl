@@ -19,6 +19,11 @@ using SauterSchwabQuadrature
 using BEAST: DoubleQuadRule
 using CUDA
 
+###remove
+using BEAST
+include("utils/benchmark_alternative.jl")
+#
+
 using KernelAbstractions, Atomix
 using KernelAbstractions: @atomic
 
@@ -86,6 +91,16 @@ mutable struct TimingInfo
     time_table::Matrix{Atomic{Float64}}
 end
 
+function double_loop(test_elements, trial_elements, biop, test_space, trial_space, qd, quadstrat)  
+    for (p, tcell) in enumerate(test_elements)
+        for (q, bcell) in enumerate(trial_elements)
+            # fill!(zlocal, 0)
+            qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
+        end
+    end
+end
+
+
 function assemblechunk_body_gpu!(biop,
     test_space, test_elements, test_assembly_data, test_cell_ptrs,
     trial_space, trial_elements, trial_assembly_data, trial_cell_ptrs,
@@ -138,7 +153,17 @@ function assemblechunk_body_gpu!(biop,
                                                                     trial_elements_length, length_return_matrix)
 
                 #start calculations
+                print("gpu")
+
+
                 quadrule_types_gpu, sizes = determine_quadrule_types(config, biop, elementAssemblyData, timingInfo)
+                # manual_benchmark(determine_quadrule_types; args=(config, biop, elementAssemblyData, timingInfo), n=100,filename="data/GPU/24/determine_quadrule_types.txt", appendOrWrite="a")
+
+                # @benchmark begin 
+                #     quadrule_types_gpu, sizes = determine_quadrule_types($config, $biop, $elementAssemblyData, $timingInfo)
+                # end samples=10 evals=1 seconds=99999999999999999999999999999999999999999999999999
+
+
                 
                 # @async begin
                     nonMainCaseQuadratures!(qd, elementAssemblyData, quadrule_types_gpu, config, 

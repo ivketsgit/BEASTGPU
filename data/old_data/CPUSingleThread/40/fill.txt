@@ -1,0 +1,6 @@
+Breaking early: Benchmark exceeded 60.0 minute.
+Manual Benchmark of duration 3631.9994900226593 over 1 runs:
+  Min: 60.51300744 s
+  Mean: 60.53330184098333 s
+  Max: 60.546622909 s
+  Std: 0.008094499418603098 s

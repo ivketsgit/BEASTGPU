@@ -18,15 +18,27 @@ function determine_quadrule_types(config, biop, elementAssemblyData, timingInfo)
 
         sizes = KernelAbstractions.zeros(backend, Int64, 3)
         
-        quadrule_determine_type(backend, 1024)(
-            quadrule_types_gpu, sizes,
-            abs2_mul_16,
-            test_elements_vertices_matrix,
-            trial_elements_vertices_matrix,
-            trial_elements_volume_matrix,
-            floatmax_type,
-            ndrange = elementAssemblyData.elements_length_tuple
-        )
+        if config.sortOnCPU
+            quadrule_determine_type(backend, 1024)(
+                quadrule_types_gpu,
+                abs2_mul_16,
+                test_elements_vertices_matrix,
+                trial_elements_vertices_matrix,
+                trial_elements_volume_matrix,
+                floatmax_type,
+                ndrange = elementAssemblyData.elements_length_tuple
+            )
+        else
+            quadrule_determine_type(backend)(
+                quadrule_types_gpu, sizes,
+                abs2_mul_16,
+                test_elements_vertices_matrix,
+                trial_elements_vertices_matrix,
+                trial_elements_volume_matrix,
+                floatmax_type,
+                ndrange = elementAssemblyData.elements_length_tuple
+            )
+        end
         
         KernelAbstractions.synchronize(backend)
     end
