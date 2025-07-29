@@ -32,11 +32,31 @@ for inv_density_factor in density_values
             TimeLogger(),
             Float64,
             true,
-            "data/GPU/$(inv_density_factor)"
+            "data/GPU/$(inv_density_factor)/sortCPU"
         )
 
     M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
     GC.gc()
+
+    config = GPUConfiguration(
+            GpuWriteBackTrueInstance(),
+            1,
+            3 * GiB,
+            doubleQuadRuleGpuStrategyShouldCalculateInstance(),
+            ShouldCalcTrueInstance(),
+            24 * GiB,
+            16,
+            true,
+            CUDABackend(),
+            TimeLogger(),
+            Float64,
+            false,
+            "data/GPU/$(inv_density_factor)/sortGPU"
+        )
+
+    M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
+    GC.gc()
+
 
 end
 
