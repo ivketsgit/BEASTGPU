@@ -10,22 +10,15 @@ for e in system_matrix_size
     A = rand(ComplexF64, e)
     d_array = CuArray(A) 
 
-    for i in 1:samples
-        GC.gc()
-        h_array = Array(d_array)
-        t = @elapsed begin
-            h_array = Array(d_array)
-        end
-        push!(times, t)
-        if i % 10 == 0
-            print(".")
-        end
-    end
+    GC.gc()
+
+    times = @benchmark Array($d_array)  samples=samples evals=1 seconds=3600 * 2
 
     GC.gc()
 
+    times = times.times / 1e9 
     num_runs = length(times)
-    total_duration = sum(times)
+    total_duration = sum(times) 
     open("data/other/transfer_warm_run_home_pc/$(e).txt", "a") do file
         println(file, """
                 Manual Benchmark of GPU-to-CPU transfer duration $(total_duration) seconds over $(num_runs) runs:
