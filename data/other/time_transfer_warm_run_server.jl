@@ -17,7 +17,7 @@ for e in system_matrix_size
 
     GC.gc()
 
-    times = times.times
+    times = times.times / 1e9
     num_runs = length(times)
     total_duration = sum(times)
     open("data/other/transfer_warm_run_server/$(e).txt", "a") do file
