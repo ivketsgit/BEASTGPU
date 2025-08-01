@@ -1,6 +1,8 @@
 using CUDA
 using BenchmarkTools
 
+include("../graph_data.jl")
+
 samples = 100
 for e in system_matrix_size
     times = []
