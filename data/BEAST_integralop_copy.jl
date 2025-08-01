@@ -65,16 +65,16 @@ function assemblechunk_body_gpu!(biop,
     length_return_matrix = length(test_space.geo.vertices)
 
     
-    f = function()
-        for (p, tcell) in enumerate(test_elements)
-            for (q, bcell) in enumerate(trial_elements)
-                fill!(zlocal, 0)
-            end
-        end
-    end
+    # f = function()
+    #     for (p, tcell) in enumerate(test_elements)
+    #         for (q, bcell) in enumerate(trial_elements)
+    #             fill!(zlocal, 0)
+    #         end
+    #     end
+    # end
 
 
-    times = manual_benchmark(f, n=100,filename= print_file * "/fill.txt",  appendOrWrite=appendOrWrite)
+    # times = manual_benchmark(f, n=100,filename= print_file * "/fill.txt",  appendOrWrite=appendOrWrite)
     
 
     f = function()
@@ -90,41 +90,41 @@ function assemblechunk_body_gpu!(biop,
 
 
     
-    f = function()
-        for (p, tcell) in enumerate(test_elements)
-            for (q, bcell) in enumerate(trial_elements)
-                qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
-                BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
-            end
-        end
-    end
+    # f = function()
+    #     for (p, tcell) in enumerate(test_elements)
+    #         for (q, bcell) in enumerate(trial_elements)
+    #             qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
+    #             BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
+    #         end
+    #     end
+    # end
 
     
-    times = manual_benchmark(f, n=100,filename= print_file * "/momintegrals.txt",  appendOrWrite=appendOrWrite)
+    # times = manual_benchmark(f, n=100,filename= print_file * "/momintegrals.txt",  appendOrWrite=appendOrWrite)
     
     
 
-    fill!(zlocal, 0)
-    f = function()
-        for (p, tcell) in enumerate(test_elements)
-            for (q, bcell) in enumerate(trial_elements)
-                I = length(test_assembly_data[p])
-                J = length(test_assembly_data[q])
-                for j in 1 : J, i in 1 : I
-                    zij = zlocal[i,j]
-                    for  (n,b) in trial_assembly_data[q][j]
-                        zb =  zij*b
-                        for (m, a) in test_assembly_data[p][i]
-                            store(a*zb, m, n)
-                        end
-                    end
-                end
-            end
-        end
-    end
+    # fill!(zlocal, 0)
+    # f = function()
+    #     for (p, tcell) in enumerate(test_elements)
+    #         for (q, bcell) in enumerate(trial_elements)
+    #             I = length(test_assembly_data[p])
+    #             J = length(test_assembly_data[q])
+    #             for j in 1 : J, i in 1 : I
+    #                 zij = zlocal[i,j]
+    #                 for  (n,b) in trial_assembly_data[q][j]
+    #                     zb =  zij*b
+    #                     for (m, a) in test_assembly_data[p][i]
+    #                         store(a*zb, m, n)
+    #                     end
+    #                 end
+    #             end
+    #         end
+    #     end
+    # end
 
     
-    times = manual_benchmark(f, n=100,filename=print_file * "/store.txt", appendOrWrite=appendOrWrite)
+    # times = manual_benchmark(f, n=100,filename=print_file * "/store.txt", appendOrWrite=appendOrWrite)
     
 
     

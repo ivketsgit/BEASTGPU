@@ -1,0 +1,3 @@
+Manual Benchmark of duration 9303.509104362 seconds over 3 runs:"
+[3131.667140576, 3172.375573949, 2999.466389837]
+

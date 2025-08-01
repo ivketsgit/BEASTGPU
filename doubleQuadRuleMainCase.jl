@@ -68,8 +68,10 @@ end
     @Const(ShouldCalcInstance::ShouldCalc), @Const(test_elements_vertices_matrix), @Const(trial_elements_vertices_matrix), @Const(trial_elements_volume_matrix), @Const(floatmax_type))    
 
     K, L = @index(Global, NTuple)
-    K = get_index(T, K, L, store_index, true) + x_offset
-    L = get_index(T, K, L, store_index, false) + y_offset
+    # K = get_index(T, K, L, store_index, true) + x_offset
+    # L = get_index(T, K, L, store_index, false) + y_offset
+    K = K + x_offset
+    L = L + y_offset
     
     P = @private ComplexF64 (9)
     
