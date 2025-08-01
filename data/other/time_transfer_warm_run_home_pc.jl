@@ -10,10 +10,17 @@ for e in system_matrix_size
     A = rand(ComplexF64, e)
     d_array = CuArray(A) 
 
-    
-    GC.gc()
-
-    times = @benchmark Array($d_array)  samples=samples evals=1 seconds=3600 * 2
+    for i in 1:samples
+        GC.gc()
+        h_array = Array(d_array)
+        t = @elapsed begin
+            h_array = Array(d_array)
+        end
+        push!(times, t)
+        if i % 10 == 0
+            print(".")
+        end
+    end
 
     GC.gc()
 
