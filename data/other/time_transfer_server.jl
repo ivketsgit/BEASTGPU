@@ -7,7 +7,8 @@ samples = 100
 for e in system_matrix_size
     times = []
 
-    d_array = CUDA.array(rand(ComplexF64, e))
+    A = rand(ComplexF64, e)
+    d_array = CuArray(A) 
 
     for i in 1:samples
         GC.gc()
