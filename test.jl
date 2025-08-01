@@ -13,6 +13,7 @@ using CUDA
 
 t = @elapsed begin
     CUDA.pin(Array{ComplexF64}(undef, Int(round(38400/1.5)),38400))
-    CuArray()
+    # CUDA.pin(Array{ComplexF64}(undef, 38400, 38400))
+    # CuArray()
 end 
 @show t
