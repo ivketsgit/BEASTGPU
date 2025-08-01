@@ -36,7 +36,7 @@ for inv_density_factor in density_values
     S = Helmholtz3D.singlelayer(wavenumber = 1.0)
 
 
-    for inv_density_factor in density_values
+    # for inv_density_factor in density_values
     times = @benchmark assemble_gpu($S,$X,$X,$config,$config.writeBackStrategy) samples=samples evals=1 seconds=3600 * 2
     
     
