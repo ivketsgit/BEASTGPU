@@ -13,6 +13,7 @@ using BenchmarkTools
 # end
 
 
+GC.gc()
 
 t = @elapsed begin
     # CUDA.pin(Array{ComplexF64}(undef, Int(round(38400/1.5)),38400))
