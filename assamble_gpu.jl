@@ -1,142 +1,180 @@
 include("assamble_chunk_gpu.jl") 
+include("utils/create_pinned_array_if_posible.jl")
+include("utils/copy_to_CPU.jl")
 using Base.Threads
 
 
-function log_time(time_logger, key::String, value)
-    if haskey(time_logger, key)
-        push!(time_logger[key], value)
-    else
-        time_logger[key] = [value]
-    end
-end
 
-
-
-function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_functions, configuration;
+function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_functions, config, writeBackStrategy::GpuWriteBackFalseInstance,;
     storage_policy = Val{:bandedstorage},
     threading = BEAST.Threading{:single},
     # long_delays_policy = LongDelays{:compress},
         quadstrat=BEAST.defaultquadstrat(operator, test_functions, trial_functions))
-    print(".")
 
     Z_real, Z_imag, store = allocatestorage(operator, test_functions, trial_functions, storage_policy)
     # Z_, store = allocatestorage(operator, test_functions, trial_functions, storage_policy)
-    
-    split = false
-    assemble_gpu!(operator, test_functions, trial_functions, configuration, store, threading; quadstrat, split)
-    if typeof(configuration["writeBackStrategy"]) == GpuWriteBackTrueInstance
-        # CUDA.unsafe_free!(gpu_results_cache[1])
-        # CUDA.synchronize()
-        # CUDA.reclaim()
-        # return
-        # time_read_out_matrix = @elapsed begin
 
+    assemble_gpu!(operator, test_functions, trial_functions, config, store, threading; quadstrat, split)
 
-            # time_to_transfer_results_2 = @elapsed begin
-                time_gpu_array = @elapsed begin
-                    gpu_array = gpu_results_cache[1]
-                end
-                @show time_gpu_array
-
-                GiB = prod(size(gpu_array)) * sizeof(Float64) / 2^30
-                println("GiB = ", GiB)
-
-                
-                time_to_transfer_originel = @elapsed begin
-                    result_cpu = Array(gpu_array)
-                end
-                @show time_to_transfer_originel
-                println("GiB/s = ", GiB / time_to_transfer_originel)
-
-                
-                time_allocate = @elapsed begin
-                    # result_cpu = Array{Float64}(undef, (2, 38402, 38402))
-                    result_cpu = Array{Float64}(undef, size(gpu_array))
-                end
-                @show time_allocate
-                    
-
-                
-                time_to_transfer_with_copy = @elapsed begin
-                    copyto!(result_cpu, gpu_array)
-                end
-                @show time_to_transfer_with_copy
-                println("GiB/s = ", GiB / time_to_transfer_with_copy)
-
-                
-                time_to_transfer_with_copy_KA_1 = @elapsed begin
-                    KernelAbstractions.copyto!(CUDABackend(), result_cpu, gpu_array)
-                end
-                @show time_to_transfer_with_copy_KA_1
-                println("GiB/s = ", GiB / time_to_transfer_with_copy_KA_1)
-
-                
-                time_to_transfer_with_copy_KA_2 = @elapsed begin
-                    KernelAbstractions.copyto!(CPU(), result_cpu, gpu_array)
-                end
-                @show time_to_transfer_with_copy_KA_2
-                println("GiB/s = ", GiB / time_to_transfer_with_copy_KA_2)
-
-            # end
-            # @show time_to_transfer_results_2
-
-            time_make_complex = @elapsed begin
-                N, M = size(result_cpu, 2), size(result_cpu, 3)
-                result_complex = Matrix{ComplexF64}(undef, N, M)
-
-                @threads for j in 1:M
-                    for i in 1:N
-                        result_complex[i, j] = complex(result_cpu[1, i, j], result_cpu[2, i, j])
-                    end
-                end
-                # result_complex = complex.(view(result_cpu, 1, :, :), view(result_cpu, 2, :, :))
-            end
-            # @show time_to_transfer_results, time_make_complex
-
-            empty!(gpu_results_cache)
-            GC.gc()
-            #CUDA.memory_status() 
-            # @info "time to transfer results to CPU= $time_to_transfer_results"
-            # @info "time to create results as complex numbers = $time_make_complex"
-            if isdefined(Main, :time_logger)
-                
-                # log_time(time_logger, "transfer results to CPU", time_to_transfer_originel)
-                log_time(time_logger, "create results as complex numbers", time_make_complex)
-            end
-            empty!(gpu_results_cache)
-            return result_complex
-        # end
-    #     # @show time_read_out_matrix
-    #     # time_read_out_matrix = @elapsed begin
-    #     #     result_gpu = gpu_results_cache[1]
-    #     #     result_cpu = complex.(Array(result_gpu[1, :, :]), Array(result_gpu[2, :, :]))
-    #     # end
-    #     # @show time_read_out_matrix
-    #     # time_read_out_matrix = @elapsed begin
-    #     #     result_cpu_raw = Array(gpu_results_cache[1])
-    #     #     M, N = size(result_cpu_raw, 2), size(result_cpu_raw, 3)
-    #     #     result_cpu = Array{ComplexF32}(undef, M, N)  # or ComplexF64 depending on original
-    #     #     @inbounds for i in 1:M, j in 1:N
-    #     #         result_cpu[i, j] = Complex(result_cpu_raw[1, i, j], result_cpu_raw[2, i, j])
-    #     #     end 
-    #     # end
-    #     # @show time_read_out_matrix
-    #     empty!(gpu_results_cache)
-    #     return result_cpu
-    end
     real_part = Z_real()
     imag_part = Z_imag
     # Z_()
     return real_part + imag_part *im
 end
 
+function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_functions, config, writeBackStrategy::GpuWriteBackTrueInstance;
+    storage_policy = Val{:bandedstorage},
+    threading = BEAST.Threading{:single},
+    # long_delays_policy = LongDelays{:compress},
+        quadstrat=BEAST.defaultquadstrat(operator, test_functions, trial_functions))
+    
+    backend = config.backend
 
-function assemble_gpu!(operator::BEAST.Operator, test_functions::BEAST.Space, trial_functions::BEAST.Space, configuration,
+    
+    result_cpu = Array{Float64}(undef, 1)  
+    result_complex = Array{ComplexF64}(undef, 1)
+    result_complex_array = []
+    complex_array = KernelAbstractions.allocate(backend, ComplexF64, size(result_cpu))
+    chunk_size = 1024 * 1024 * 10
+    # nthreads = Int(round(Threads.nthreads() / 2))
+    nthreads = Threads.nthreads()
+    # task_allocate = Threads.@spawn begin
+        if config.makeCompexWithGPU == true
+            result_cpu = Array{ComplexF64}(undef, numfunctions(test_functions), numfunctions(trial_functions))
+            
+
+            # time_pinned = @elapsed begin
+            #     result_complex = pinned_arr(result_cpu, backend)
+            # end
+            # @show time_pinned
+
+            
+            # time_pinned = @elapsed begin
+            #     chunk_size = Int(ceil(prod(size(result_cpu))/100))
+            #     for n in 1:nthreads
+            #         push!(result_complex_array, pinned_arr(Array{ComplexF64}(undef, chunk_size), backend))
+            #     end
+            #     # config["pinned_buffers"] = result_complex_array
+            #     # result_complex = pinned_arr(result_cpu, backend)
+            # end
+            # @show time_pinned
+            # time_pinned = @elapsed begin
+            #     result_complex = pinned_arr(result_cpu, backend)
+            # end
+            # @show time_pinned
+            complex_array = KernelAbstractions.allocate(backend, ComplexF64, size(result_cpu))
+
+            
+
+        else
+            result_cpu = Array{Float64}(undef, 2, numfunctions(test_functions), numfunctions(trial_functions))
+            result_cpu = pinned_arr(result_cpu, backend)
+        end
+    # end
+
+    assemble_gpu!(operator, test_functions, trial_functions, config, nothing, threading; quadstrat, split)
+
+
+    gpu_array = gpu_results_cache[1]
+    GiB = prod(size(gpu_array)) * sizeof(Float64) / 2^30
+    
+    if config.makeCompexWithGPU == true
+        time_make_complex = @elapsed begin
+            make_complex(backend)(complex_array, gpu_array, ndrange = (numfunctions(test_functions), numfunctions(trial_functions)))
+            KernelAbstractions.synchronize(backend)
+        end
+        @show time_make_complex
+
+        # time_to_transfer_with_copy = @elapsed begin
+        #     copyto!(result_complex, complex_array)
+        # end
+        # @show time_to_transfer_with_copy
+
+        
+        
+        
+        time_to_transfer_with_copy = @elapsed begin
+        #     # result_profile = CUDA.@profile trace=true copyto!(result_complex, complex_array)
+            chunk_size = Int(ceil(prod(size(result_cpu))/100))
+            result_cpu = copy_to_CPU(result_cpu, complex_array, backend, ComplexF64, chunk_size, config)
+
+            # result_cpu = copy_to_CPU(result_cpu, complex_array, backend, ComplexF64, Int(round(1024 * 1024 * 100 * 1.5)), config)
+
+        
+
+            # rows, cols = size(result_cpu)
+            # complex_array_flat = reshape(complex_array, :)  
+            # result_cpu_flat = reshape(result_cpu, :)
+
+            
+            # N = prod(size(result_cpu))
+        #     # for i in 1:chunk_size:N
+        #     #     this_chunk = min(chunk_size, N - i + 1)
+        #     #     copyto!(result_complex_1, 1, complex_array_flat, i, this_chunk)      # GPU -> pinned buffer
+        #     #     copyto!(result_cpu_flat, i, result_complex_1, 1, this_chunk)        # pinned buffer -> final array
+        #     # end
+
+            # channel = Channel{Tuple{Int, Int}}(100)
+            # task = []
+            # for n in 1:nthreads
+            #     t = Threads.@spawn worker(result_cpu_flat, result_complex_array[n], complex_array_flat, channel)
+            #     push!(task, t)
+            # end
+
+            # for i in 1:chunk_size:N
+            #     this_chunk = min(chunk_size, N - i + 1)
+            #     put!(channel, (i, this_chunk))
+            # end
+            # close(channel)
+
+            # for n in 1:nthreads
+            #     wait(task[n])
+            # end
+
+            # result_cpu = reshape(result_cpu_flat, rows, cols)
+        end
+        @show time_to_transfer_with_copy
+        println("GiB/s = ", GiB / time_to_transfer_with_copy)
+
+        
+    else
+        
+        time_to_transfer_with_copy = @elapsed begin
+            copyto!(result_cpu, gpu_array)
+        end
+        @show time_to_transfer_with_copy
+        println("GiB/s = ", GiB / time_to_transfer_with_copy)
+
+        time_make_complex = @elapsed begin
+            result_cpu = complex.(view(result_cpu, 1, :, :), view(result_cpu, 2, :, :))
+        end
+    end
+
+    empty!(gpu_results_cache)
+
+
+    if config.timeLogger !== nothing
+        log_time(config.timeLogger, "transfer results to CPU", time_to_transfer_with_copy)
+        log_time(config.timeLogger, "create results as complex numbers", time_make_complex)
+    end
+
+    return result_cpu
+    # return result_complex
+end
+
+
+
+@kernel function make_complex(complex_array, @Const(float_array))
+    i, j = @index(Global, NTuple)
+    complex_array[i, j] = Complex(float_array[1, i, j], float_array[2, i, j])
+end
+
+function assemble_gpu!(operator::BEAST.Operator, test_functions::BEAST.Space, trial_functions::BEAST.Space, config,
     store, threading::Type{BEAST.Threading{:single}};
     quadstrat=BEAST.defaultquadstrat(operator, test_functions, trial_functions),
     split = false)
     
-    assemblechunk_gpu!(operator, test_functions, trial_functions, configuration, store; quadstrat)
+    assemblechunk_gpu!(operator, test_functions, trial_functions, config, store; quadstrat)
 end
 
 # function assemble_gpu!(operator::BEAST.Operator, test_functions::BEAST.Space, trial_functions::BEAST.Space,

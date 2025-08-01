@@ -23,6 +23,16 @@ end
     end
 end
 
+@inline function store_with_kernel_splits__!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, igd_Integrands, K, L, T::GpuWriteBackTrue, Global_number)
+    @unroll for k in 0:8
+        remainder, quotient = divrem(k, 3)
+        # @print("\n quotient = ", quotient, " remainder = ",remainder, "   K = ",  K, " L = ", L, " igd_Integrands[k * 2 + 1] = ",igd_Integrands[k * 2 + 1] , " igd_Integrands[k * 2 + 2] = ", igd_Integrands[k * 2 + 2])
+        
+        @atomic result[1, test_assembly_gpu_indexes[quotient + 1, K], trial_assembly_gpu_indexes[remainder + 1, L]] += igd_Integrands[k * 256 * 2       + 1] * test_assembly_gpu_values[quotient + 1, K] * trial_assembly_gpu_values[remainder + 1, L]
+        @atomic result[2, test_assembly_gpu_indexes[quotient + 1, K], trial_assembly_gpu_indexes[remainder + 1, L]] += igd_Integrands[k * 256 * 2 + 256 + 1] * test_assembly_gpu_values[quotient + 1, K] * trial_assembly_gpu_values[remainder + 1, L]
+    end
+end
+
 @inline function store_with_kernel_splits!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, igd_Integrands, K, L, T::GpuWriteBackFalse, Global_number)
     @unroll for k in 1:9
         remainder, quotient = divrem(k - 1, 3)
@@ -30,17 +40,18 @@ end
     end
 end
 
-@inline function store_with_kernel_splits_!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, igd_Integrands, K, L, T::GpuWriteBackFalse, Global_number)
-    @unroll for k in 1:5
-        remainder, quotient = divrem(k - 1, 3)
-        k_ = k - 1 
-        result[(Global_number - 1) >> 8 + 1, k] = (igd_Integrands[k_ * 2 * 256 + 1] + igd_Integrands[(k_ * 2 + 1) * 256 + 1] * im)  * test_assembly_gpu_values[quotient + 1, K] * trial_assembly_gpu_values[remainder + 1, L]
-    end
 
-    @unroll for k in 6:9
+@inline function store_with_kernel_splits__!(result, test_assembly_gpu_indexes, trial_assembly_gpu_indexes,
+                                             test_assembly_gpu_values, trial_assembly_gpu_values,
+                                             igd_Integrands, K, L, T::GpuWriteBackFalse, Global_number)
+    @unroll for k in 1:9
         remainder, quotient = divrem(k - 1, 3)
-        k_ = k - 1 
-        result[(Global_number - 1) >> 8 + 1, k] = (igd_Integrands[k_ * 2 * 256 + 255] + igd_Integrands[(k_ * 2 + 1) * 256 + 255] * im)  * test_assembly_gpu_values[quotient + 1, K] * trial_assembly_gpu_values[remainder + 1, L]
+        real_part = igd_Integrands[(k - 1) * 256 * 2       + 1]
+        imag_part = igd_Integrands[(k - 1) * 256 * 2 + 256 + 1]
+        val = (real_part + imag_part * im) *
+              test_assembly_gpu_values[quotient + 1, K] *
+              trial_assembly_gpu_values[remainder + 1, L]
+        result[(Global_number - 1) >> 8 + 1, k] = val
     end
 end
 

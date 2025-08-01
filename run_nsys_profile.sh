@@ -1,4 +1,6 @@
 #!/bin/bash
+export PATH="/local-dumpfolders/students/ivkets/nsight-systems-2025.2.1/bin:$PATH"
+export JULIA_NUM_THREADS=16
 
 # Program to profile
 PROGRAM="/local-dumpfolders/students/ivkets/opt/julia/julia-1.11.4/bin/julia"
@@ -23,4 +25,4 @@ REPORT_NAME="$RESULT_DIR/profile_${next_index}"
 nsys profile \
   --output "$REPORT_NAME" \
   --trace=cuda,nvtx,osrt \
-  $PROGRAM -e "using Pkg; Pkg.activate(\"env\"); include(\"$SCRIPT\")"
+  $PROGRAM -e "using Pkg; Pkg.activate(\"env\"); include(\"$SCRIPT\"); include(\"$SCRIPT\")"

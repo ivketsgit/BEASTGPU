@@ -1,0 +1,128 @@
+Manual Benchmark of duration 0.005539894104003906 over 100 runs:
+Min: 5.609e-6 s
+Mean: 5.4675379999999994e-5 s
+Max: 0.004909704 s
+Std: 0.0004904069336307829 s
+2nd Quartile (Median): 5.62e-6 s
+3rd Quartile (75th percentile): 5.62e-6 s
+
+Manual Benchmark of duration 0.0035140514373779297 over 100 runs:
+Min: 6.72e-6 s
+Mean: 3.390055999999999e-5 s
+Max: 0.002716272 s
+Std: 0.00027094717368655787 s
+2nd Quartile (Median): 6.73e-6 s
+3rd Quartile (75th percentile): 6.74e-6 s
+
+Manual Benchmark of duration 0.0005609989166259766 over 100 runs:
+Min: 5.05e-6 s
+Mean: 5.0798e-6 s
+Max: 6.16e-6 s
+Std: 1.1143671483914726e-7 s
+2nd Quartile (Median): 5.06e-6 s
+3rd Quartile (75th percentile): 5.07e-6 s
+
+Manual Benchmark of duration 0.0005371570587158203 over 100 runs:
+Min: 5.049e-6 s
+Mean: 5.0655800000000006e-6 s
+Max: 5.36e-6 s
+Std: 3.628845713463338e-8 s
+2nd Quartile (Median): 5.06e-6 s
+3rd Quartile (75th percentile): 5.06e-6 s
+
+Manual Benchmark of duration 0.0006940364837646484 over 100 runs:
+Min: 6.17e-6 s
+Mean: 6.263270000000001e-6 s
+Max: 1.271e-5 s
+Std: 6.582933068767963e-7 s
+2nd Quartile (Median): 6.18e-6 s
+3rd Quartile (75th percentile): 6.19e-6 s
+
+Manual Benchmark of duration 0.0003139972686767578 over 100 runs:
+Min: 2.829e-6 s
+Mean: 2.8388699999999992e-6 s
+Max: 3.12e-6 s
+Std: 3.5325229202113043e-8 s
+2nd Quartile (Median): 2.83e-6 s
+3rd Quartile (75th percentile): 2.831e-6 s
+
+Manual Benchmark of duration 0.000453948974609375 over 100 runs:
+Min: 3.38e-6 s
+Mean: 3.4454999999999995e-6 s
+Max: 8.08e-6 s
+Std: 4.7051739198632843e-7 s
+2nd Quartile (Median): 3.39e-6 s
+3rd Quartile (75th percentile): 3.39e-6 s
+
+Manual Benchmark of duration 0.0006489753723144531 over 100 runs:
+Min: 3.38e-6 s
+Mean: 3.4799099999999998e-6 s
+Max: 1.1701e-5 s
+Std: 8.312090511824792e-7 s
+2nd Quartile (Median): 3.39e-6 s
+3rd Quartile (75th percentile): 3.39e-6 s
+
+Manual Benchmark of duration 0.0007271766662597656 over 100 runs:
+Min: 6.17e-6 s
+Mean: 6.2038e-6 s
+Max: 7.24e-6 s
+Std: 1.1916188801607479e-7 s
+2nd Quartile (Median): 6.18e-6 s
+3rd Quartile (75th percentile): 6.18e-6 s
+
+Manual Benchmark of duration 0.0006508827209472656 over 100 runs:
+Min: 2.83e-6 s
+Mean: 2.8755000000000003e-6 s
+Max: 4.76e-6 s
+Std: 2.5956986564606297e-7 s
+2nd Quartile (Median): 2.83e-6 s
+3rd Quartile (75th percentile): 2.83e-6 s
+
+Manual Benchmark of duration 0.0005269050598144531 over 100 runs:
+Min: 3.38e-6 s
+Mean: 3.4799999999999993e-6 s
+Max: 1.143e-5 s
+Std: 8.045564685658249e-7 s
+2nd Quartile (Median): 3.39e-6 s
+3rd Quartile (75th percentile): 3.39e-6 s
+
+Manual Benchmark of duration 0.0004940032958984375 over 100 runs:
+Min: 3.94e-6 s
+Mean: 4.08328e-6 s
+Max: 1.528e-5 s
+Std: 1.1466646765310426e-6 s
+2nd Quartile (Median): 3.949e-6 s
+3rd Quartile (75th percentile): 3.95e-6 s
+
+Manual Benchmark of duration 0.0007801055908203125 over 100 runs:
+Min: 3.38e-6 s
+Mean: 3.5031999999999998e-6 s
+Max: 1.262e-5 s
+Std: 9.401825526583827e-7 s
+2nd Quartile (Median): 3.39e-6 s
+3rd Quartile (75th percentile): 3.39e-6 s
+
+Manual Benchmark of duration 0.0010161399841308594 over 100 runs:
+Min: 5.609e-6 s
+Mean: 5.722300000000001e-6 s
+Max: 1.327e-5 s
+Std: 7.864071027865473e-7 s
+2nd Quartile (Median): 5.62e-6 s
+3rd Quartile (75th percentile): 5.62e-6 s
+
+Manual Benchmark of duration 0.0012891292572021484 over 100 runs:
+Min: 6.729e-6 s
+Mean: 6.86159e-6 s
+Max: 1.47e-5 s
+Std: 8.294610772585226e-7 s
+2nd Quartile (Median): 6.730499999999999e-6 s
+3rd Quartile (75th percentile): 6.74e-6 s
+
+Manual Benchmark of duration 0.0013718605041503906 over 100 runs:
+Min: 3.94e-6 s
+Mean: 4.070800000000001e-6 s
+Max: 1.166e-5 s
+Std: 8.093040781493014e-7 s
+2nd Quartile (Median): 3.95e-6 s
+3rd Quartile (75th percentile): 3.95e-6 s
+

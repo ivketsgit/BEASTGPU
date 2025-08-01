@@ -2,14 +2,15 @@ using BEAST
 using CompScienceMeshes
 using BenchmarkTools
 using Serialization
-using Logging
 
-#global_logger(ConsoleLogger(stderr, Logging.Info))
+using ImageShow  
+# using Images, ImageView
+using Plots, Profile, FlameGraphs    
 
 
 include("assamble_gpu.jl")
 include("CustomDataStructs/GpuWriteBack.jl")
-include("utils/backend.jl")
+include("utils/configuration.jl")
 
 
 
@@ -24,14 +25,23 @@ include("utils/backend.jl")
 # const B = 8
 const MiB = 2^20
 const GiB = 2^30
-configuration = Dict()
-configuration["writeBackStrategy"] = GpuWriteBackTrueInstance()
-configuration["amount_of_gpus"] = 1
-configuration["total_GPU_budget"] = 3 * GiB
-configuration["InstancedoubleQuadRuleGpuStrategyShouldCalculate"] = doubleQuadRuleGpuStrategyShouldCalculateInstance()
-configuration["ShouldCalcInstance"] = ShouldCalcTrueInstance()
-configuration["GPU_budget_pipeline_result"] = 24 * GiB
-configuration["amount_of_producers"] = 16
+CUDA.allowscalar(false)
+config = GPUConfiguration(
+        GpuWriteBackTrueInstance(),
+        1,
+        3 * GiB,
+        doubleQuadRuleGpuStrategyShouldCalculateInstance(),
+        ShouldCalcTrueInstance(),
+        24 * GiB,
+        16,
+        true,
+        CUDABackend(),
+        TimeLogger(),
+        Float64,
+        false,
+        ""
+    )
+
 
 inv_density_factor = 40
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
@@ -56,101 +66,66 @@ filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
 #    println("Elapsed time control: ", time)
 #    println("")
 # end
-
-
-global time_logger = Dict()
-time_logger["time overhead"] = []
-time_logger["time to determin the quadrule"] = []
-time_logger["calculate the double int"] = []
-time_logger["transfer quadrule to CPU"] = []
-time_logger["calculate double for loop"] = []
-time_logger["calculate SauterSchwab"] = []
-# time_logger["time_table[1,:]"] = []
-# time_logger["time_table[2,:]"] = []
-time_logger["time_to_store"] = []
-time_logger["transfer results to CPU"] = []
-time_logger["create results as complex numbers"] = []
-
-time_logger["time_sauter_schwab_overhead_and_test_toll 2"] = []
-time_logger["time_sauter_schwab_overhead_and_test_toll 3"] = []
-time_logger["time_sauter_schwab_overhead_and_test_toll 4"] = []
-
-time_logger["calc_sauter_schwab 2"] = []
-time_logger["calc_sauter_schwab 3"] = []
-time_logger["calc_sauter_schwab 4"] = []
+# Profile.init(n = 10_000_000) 
+# Profile.clear(); 
+# assemble_gpu(S,X,X,config,config.writeBackStrategy)
 
 let time = @elapsed begin
-        M_ref_gpu = assemble_gpu(S,X,X,configuration)
+        M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
+
+        
+# using Profile
+#                     Profile.init(delay = 0.001)  # 1ms between samples
+
+#                     Profile.clear()              # Clear any old data
+#                     @profile begin
+#                         assemble_gpu(S,X,X,config,config.writeBackStrategy)
+#                     end
+
+#                     Profile.print()              # Or use ProfileView.jl for a GUI
+
+#                     Profile.print(format=:flat)
+
+        # 
+        # @profview assemble_gpu(S,X,X,config,config.writeBackStrategy)
+
+        
+        
+        # @profview assemble_gpu(S,X,X,config,config.writeBackStrategy)
+
+        # @profview_allocs assemble_gpu(S,X,X,config,config.writeBackStrategy) sample_rate = 1
+        
+        # @profile for _ in 1:1000
+        #     assemble_gpu(S, X, X, config, config.writeBackStrategy)
+        # end
     end 
     println("Elapsed time: ", time)
     println("")
 end
+GC.gc()
+# Profile.print()     
+# g = flamegraph()
+# g = flamegraph(C=true)
+# img = flamepixels(g)
+# save("flamegraph.png", img)
+# display(img)
+# imshow(img)
 
 
-# function extract_atomic_values(value)
-#     @show value
-#     if value == []
-#         # Case 3: Empty vector
-#         return []
-#     elseif all(x -> isa(x, Atomic{Float64}), value)
-#         # Case 1: Flat vector of Atomic{Float64}
-#         @show value
-#         return mean([x[] for x in value][:])
-#     elseif all(x -> isa(x, Vector{Atomic{Float64}}), value)
-#         # Case 2: Vector of Vectors (2D matrix-like structure)
-#         return [mean([x[] for x in row][:]) for row in value]
-#     elseif all(x -> isa(x, Float64), value)
-#         # Case 3: Empty vector
-#         return mean(value[:])
-#     elseif all(x -> isa(x, Vector{Float64}), value)
-#         # Case 3: Empty vector
-#         return mean(value[:])
-#     else
-#         @show value
-#         @show typeof(value)
-#         error("Unsupported structure: expected Vector{Atomic{Float64}} or Vector{Vector{Atomic{Float64}}}")
-#     end
-# end
 
-# let keys = ["time overhead", "time to determin the quadrule", "calculate the double int", "transfer quadrule to CPU", "calculate double for loop", "calculate SauterSchwab", "time_to_store", "transfer results to CPU", "create results as complex numbers", "time_sauter_schwab_overhead_and_test_toll 2", "time_sauter_schwab_overhead_and_test_toll 3", "time_sauter_schwab_overhead_and_test_toll 4"]
-#     for key in keys
-#         if haskey(time_logger, key)
-#             value = time_logger[key]
-#             means = extract_atomic_values(value)
 
-#             println(key, "     ", means)
-#             # @show value
-#         end
-#     end
-# end
 
-# let time = @elapsed begin
-#         M = assemble_gpu(S,X,X,writeBackStrategy,2)
-#     end 
-#     println("Elapsed time: ", time)
-#     println("")
-# end
-# @show M_ref
-# @show M
 
-# M_ref = open(filename, "r") do io
-#     deserialize(io)
-# end
+# print_means(config.timeLogger)
 
-# # println("")
 
-# global_logger(ConsoleLogger(stderr, Logging.Info)) 
-# # error_matrix = abs.(M_ref .- M)
-# # @show maximum(error_matrix)
-# error_matrix = abs.(M_ref .- M_ref_gpu)
-# println("")
-# @show maximum(error_matrix)
 
- 
-# error_matrix = abs.(M_ref_gpu .- M)
-# @show maximum(error_matrix)
-# @show M
-# @show M_ref
-# for (i, e) in enumerate(abs.(M_ref .- M))
-#     @show i, e
-# end
+M_ref = open(filename, "r") do io
+    deserialize(io)
+end
+
+min_M_row = Array{Float64}(undef, size(M)[1])
+@threads for col in 1:size(M)[1]
+    min_M_row[col] = abs.(M_ref[col] .- M[col])
+end
+@show maximum(min_M_row)

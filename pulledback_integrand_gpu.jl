@@ -19,7 +19,7 @@ end
 
 
 const tol_Float64 = 1e3 * eps(Float64)
-@kernel function test_toll!(vertices1, vertices2, tangents1, tangents2, @Const(vertices1_), @Const(vertices2_), @Const(indexes), @Const(tcell_vertices), @Const(bcell_vertices), T::SauterSchwabQuadratureCommonFaceCustomGpuData)
+@kernel function test_toll!(vertices1, vertices2, tangents1, tangents2, @Const(vertices1_), @Const(vertices2_), @Const(indexes), @Const(tcell_vertices), @Const(bcell_vertices), T::CommonFaceCustomGpuData)
     groupsize = prod(@groupsize())
     
     I = @localmem Int (512, 3)
@@ -57,7 +57,7 @@ const tol_Float64 = 1e3 * eps(Float64)
     pulledback_integrand_gpu!(tangents1, tangents2, vertices1, vertices2, vertices1_, vertices2_, I, J, local_index, global_index)
 end
 
-@kernel function test_toll!(vertices1, vertices2, tangents1, tangents2, @Const(vertices1_), @Const(vertices2_), @Const(indexes), @Const(tcell_vertices), @Const(bcell_vertices), T::SauterSchwabQuadratureCommonEdgeCustomGpuData)
+@kernel function test_toll!(vertices1, vertices2, tangents1, tangents2, @Const(vertices1_), @Const(vertices2_), @Const(indexes), @Const(tcell_vertices), @Const(bcell_vertices), T::CommonEdgeCustomGpuData)
     groupsize = prod(@groupsize())
     
     I = @localmem Int (512, 3)
@@ -114,7 +114,7 @@ function setdiff_lengthe_3(array, local_index, e_is_1, e_is_2)
     array[local_index, 3] = 6 - array[local_index, 1] - array[local_index, 2]
 end
 
-@kernel function test_toll!(vertices1, vertices2, tangents1, tangents2, @Const(vertices1_), @Const(vertices2_), @Const(indexes), @Const(tcell_vertices), @Const(bcell_vertices), T::SauterSchwabQuadratureCommonVertexCustomGpuData)
+@kernel function test_toll!(vertices1, vertices2, tangents1, tangents2, @Const(vertices1_), @Const(vertices2_), @Const(indexes), @Const(tcell_vertices), @Const(bcell_vertices), T::CommonVertexCustomGpuData)
     groupsize = prod(@groupsize())
     
     I = @localmem Int (512, 3)

@@ -36,15 +36,30 @@ function reduce(igd_Integrands, i)
     end
 end
 
-function reduce_attomic(igd_Integrands, i)
-    tot = 256
+const tot = 256
+@inline function reduce_attomic(igd_Integrands, i)
     # ((63 - leading_zeros(256)))
     @synchronize()
-    @unroll for iter in 8:-1:1
+    @unroll for iter in 8-3:-1:1
         d = 2 ^ (iter-1)
         if i + 1 <= d
             @unroll for local_iter in 1:18
                 igd_Integrands[i * 9 * 2 + local_iter] += igd_Integrands[(i + d) * 9 * 2 + local_iter]
+            end
+        end
+        @synchronize()
+    end
+end
+
+const tot = 256
+@inline function reduce_attomic__(igd_Integrands, i)
+    # ((63 - leading_zeros(256)))
+    @synchronize()
+    for iter in 8:-1:1
+        d = 2 ^ (iter-1)
+        if i + 1 <= d
+            for local_iter in 1:18
+                igd_Integrands[(local_iter - 1) * 256 + i + 1] += igd_Integrands[(local_iter - 1) * 256 + (i + d) + 1]
             end
         end
         @synchronize()

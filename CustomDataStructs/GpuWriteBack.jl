@@ -110,12 +110,12 @@ function write_to_compact_matrix(gpu_matrix, store, length_return_matrix, ndrang
     end
 end
 
-@inline function get_zij(z, iterator, i, j, T::SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonFaceCustomGpuData})
+@inline function get_zij(z, iterator, i, j, T::SauterSchwabQuadrature_gpu_data{CommonFaceCustomGpuData})
     z[(i-1) * 3 + j]
 end
-@inline function get_zij(z, iterator, i, j, T::SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonEdgeCustomGpuData})
+@inline function get_zij(z, iterator, i, j, T::SauterSchwabQuadrature_gpu_data{CommonEdgeCustomGpuData})
     z[(j-1) * 3 + i]
 end
-@inline function get_zij(z, iterator, i, j, T::SauterSchwabQuadrature_gpu_data{SauterSchwabQuadratureCommonVertexCustomGpuData})
+@inline function get_zij(z, iterator, i, j, T::SauterSchwabQuadrature_gpu_data{CommonVertexCustomGpuData})
     z[(j-1) * 3 + i]
 end
