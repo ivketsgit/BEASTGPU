@@ -2,12 +2,12 @@ using CUDA
 using BenchmarkTools
 
 samples = 100
-for e in range(7, 10)
+for e in system_matrix_size
     times = []
     for i in 1:samples
         GC.gc()
         t = @elapsed begin
-            CUDA.pin(Array{ComplexF64}(undef, Int(round(38400*(e/10))),38400))
+            CUDA.pin(Array{ComplexF64}(undef, e))
         end
         push!(times, t)
         if i % 10 == 0
