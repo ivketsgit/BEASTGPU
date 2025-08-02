@@ -9,11 +9,12 @@ for e in system_matrix_size
 
     A = rand(ComplexF64, e)
     d_array = CuArray(A) 
+    CPU_array = A
 
     for i in 1:samples
         GC.gc()
         t = @elapsed begin
-            h_array = Array(d_array)
+            copyto!(CPU_array, d_array)
         end
         push!(times, t)
         if i % 10 == 0

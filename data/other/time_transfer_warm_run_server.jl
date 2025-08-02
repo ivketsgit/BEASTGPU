@@ -9,11 +9,11 @@ for e in system_matrix_size
 
     A = rand(ComplexF64, e)
     d_array = CuArray(A) 
+    CPU_array = A
 
-    
     GC.gc()
 
-    times = @benchmark Array($d_array)  samples=samples evals=1 seconds=3600 * 2
+    times = @benchmark copyto!($CPU_array, $d_array)  samples=samples evals=1 seconds=3600 * 2
 
     GC.gc()
 
