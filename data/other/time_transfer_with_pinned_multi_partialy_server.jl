@@ -10,7 +10,7 @@ include("../../utils/copy_to_CPU.jl")
 CUDA.allowscalar(false)
 backend = CUDABackend()
 
-samples = 100
+samples = 1000
 for e in system_matrix_size
     times = []
 
