@@ -11,7 +11,7 @@ CUDA.allowscalar(false)
 backend = CUDABackend()
 
 samples = 100
-for e in system_matrix_size[3:end]
+for e in system_matrix_size
     times = []
 
     A = rand(ComplexF64, (Int(ceil(sqrt(e))), Int(ceil(sqrt(e)))))
