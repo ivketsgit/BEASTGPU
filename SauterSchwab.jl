@@ -415,7 +415,9 @@ function SauterSchwab_2!(SauterSchwabQuadratureCustomGpuData, t, l, qps_,
     end
     
     
-    result = create_results_matrix_gpu(backend, length_return_matrix, elements_length_tuple, writeBackStrategy, SauterSchwabQuadratureCustomGpuData)
+    
+    result = create_results_matrix_gpu(backend, length_return_matrix, elements_length_tuple, writeBackStrategy, SauterSchwabQuadratureCustomGpuData, l)
+    
 
     test_assembly_gpu_indexes = assembly_gpu_data[1]
     trial_assembly_gpu_indexes = assembly_gpu_data[2]

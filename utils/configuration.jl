@@ -2,6 +2,10 @@ using CUDA
 using CUDA.CUDAKernels
 
 include("log.jl")
+include("../CustomDataStructs/doubleQuadRuleGpuStrategy.jl")
+include("../CustomDataStructs/GpuWriteBack.jl")
+include("../CustomDataStructs/SauterSchwabQuadratureDataStruct.jl")
+include("../CustomDataStructs/should_calc.jl")
 
 # Define the config type
 struct GPUConfiguration
