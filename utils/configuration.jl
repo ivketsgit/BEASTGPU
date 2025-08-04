@@ -22,6 +22,7 @@ struct GPUConfiguration
     floatType::Type
     sortOnCPU::Bool
     filename_benchmark::String
+    gpu_schedular_print_filename::Union{Nothing, String}  
 end
 
 # Helper constructor function
