@@ -27,7 +27,7 @@ const MiB = 2^20
 const GiB = 2^30
 CUDA.allowscalar(false)
 config = GPUConfiguration(
-        GpuWriteBackFalseInstance(),
+        GpuWriteBackTrueInstance(),
         1,
         3 * GiB,
         doubleQuadRuleGpuStrategyShouldCalculateInstance(),
@@ -44,7 +44,7 @@ config = GPUConfiguration(
     )
 
 
-inv_density_factor = 40
+inv_density_factor = 1
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
 # Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor; generator=:gmsh)
 X = lagrangec0d1(Γ) 
