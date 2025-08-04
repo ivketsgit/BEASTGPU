@@ -1,4 +1,5 @@
 [deps]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 Atomix = "a9b6321e-bd34-4604-b9c9-b65b8de01458"
 BEAST = "bb4162c7-ba94-5a20-af32-d8ec4428bdd1"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"

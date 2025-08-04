@@ -27,6 +27,8 @@ include("utils/benchmark_alternative.jl")
 using KernelAbstractions, Atomix
 using KernelAbstractions: @atomic
 
+using Adapt
+
 # using BEAST.space
 # include("../src/quadrature/sauterschwabints.jl") 
 # struct DoubleQuadRule{P,Q}
@@ -129,6 +131,14 @@ function assemblechunk_body_gpu!(biop,
             indexes = [round(Int,s) for s in range(0, stop=length(test_elements), length=amount_of_gpus+1)]
             trial_elements_length = length(trial_elements)
             
+            @show Adapt.adapt(CuArray, biop) 
+            @show Adapt.adapt(CuArray, test_space)  
+            @show Adapt.adapt(CuArray, test_elements)  
+            @show Adapt.adapt(CuArray, test_assembly_data) 
+            @show Adapt.adapt(CuArray, test_cell_ptrs) 
+            @show Adapt.adapt(CuArray, qd) 
+            @show Adapt.adapt(CuArray, quadstrat) 
+
             test_elements_data_original = load_data_elements(config, test_elements)
             trial_elements_data_original = load_data_elements(config, trial_elements)
 
