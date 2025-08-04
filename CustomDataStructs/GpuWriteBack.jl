@@ -26,6 +26,22 @@ function create_results_matrix_gpu(backend, length_return_matrix, size_qrule, T:
     # return KernelAbstractions.zeros(backend, Float64, 2, length_return_matrix, length_return_matrix)
 end
 
+function create_results_matrix_gpu(backend, length_return_matrix, size_qrule, T::GpuWriteBackTrue, any, l)
+    lock(gpu_cache_lock) do
+        if haskey(gpu_results_cache, 1)
+            
+        else
+            gpu_results_cache[1] = KernelAbstractions.zeros(backend, Float64, 2, length_return_matrix, length_return_matrix)
+            # t = Threads.@spawn begin
+            #     result_cpu = Array{Float64}(undef, (2, 38402, 38402))
+            #     copyto!(result_cpu, gpu_results_cache[1])
+            # end
+        end
+    end
+    return gpu_results_cache[1]
+    # return KernelAbstractions.zeros(backend, Float64, 2, length_return_matrix, length_return_matrix)
+end
+
 function create_results_matrix_gpu(backend, length_return_matrix, elements_length_tuple, T::GpuWriteBackFalse, T2::doubleQuadRuleGpuStrategy)
     return KernelAbstractions.allocate(backend, ComplexF64, elements_length_tuple[1], elements_length_tuple[2], 9)
     # return KernelAbstractions.zeros(backend, ComplexF64, size_qrule, size_qrule, 9)

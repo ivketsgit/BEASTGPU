@@ -209,6 +209,15 @@ end
         for p in producers
             wait(p)
         end
+        if hasfield(typeof(config), :gpu_schedular_print_filename)
+            if config.gpu_schedular_print_filename !== nothing
+                lock(file_lock) do
+                    open(config.gpu_schedular_print_filename, "a") do file
+                        println(file, "")
+                    end
+                end
+            end
+        end
     end
 end
 
@@ -249,18 +258,18 @@ function producer(ch_data::Channel,
                 KernelAbstractions.copyto!(CPU(), result_cpu, results)
             end
             t3 += @elapsed begin
-            # result_cpu_temp = Array(results)
+                # result_cpu_temp = Array(results)
+                
+                # result_cpu = Array(results)
+                # write_to_compact_matrix(result_cpu, store, length_return_matrix, ndrange, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
+                linear_index = (j - 1) * blocks + i
             
-            # result_cpu = Array(results)
-            # write_to_compact_matrix(result_cpu, store, length_return_matrix, ndrange, writeBackStrategy, InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
-            linear_index = (j - 1) * blocks + i
-           
-            if typeof(config.writeBackStrategy) == GpuWriteBackFalseInstance
-                assembly_gpu_data = elementAssemblyData.assembly_data
-                test_assembly_cpu_indexes = assembly_gpu_data[5]
-                trial_assembly_cpu_indexes = assembly_gpu_data[6]
-                write_to_compact_matrix(result_cpu, store, elementAssemblyData.length_return_matrix, ndrange, config.writeBackStrategy, config.InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
-            end
+                if typeof(config.writeBackStrategy) == GpuWriteBackFalseInstance
+                    assembly_gpu_data = elementAssemblyData.assembly_data
+                    test_assembly_cpu_indexes = assembly_gpu_data[5]
+                    trial_assembly_cpu_indexes = assembly_gpu_data[6]
+                    write_to_compact_matrix(result_cpu, store, elementAssemblyData.length_return_matrix, ndrange, config.writeBackStrategy, config.InstancedoubleQuadRuleGpuStrategyShouldCalculate, test_assembly_cpu_indexes, trial_assembly_cpu_indexes, curr_offsets)
+                end
             end
             # item = (result_cpu, ndrange, curr_offsets, i, j)
             # put!(ch_store, item)
@@ -268,9 +277,11 @@ function producer(ch_data::Channel,
         end
     end
     if hasfield(typeof(config), :gpu_schedular_print_filename)
-        lock(file_lock) do
-            open(config.gpu_schedular_print_filename, "a") do file
-                println(file, "[",t1, ", ", t2, ", ", t3, ", ", counter, "],")
+        if config.gpu_schedular_print_filename !== nothing
+            lock(file_lock) do
+                open(config.gpu_schedular_print_filename, "a") do file
+                    print(file, "[",t1, ", ", t2, ", ", t3, ", ", counter, "], ")
+                end
             end
         end
     end

@@ -16,7 +16,7 @@ CUDA.allowscalar(false)
 storeStrategies = ["storeGPU", "storeCPU"]
 storeStrategies_ = [GpuWriteBackTrueInstance(), GpuWriteBackFalseInstance()]
 sortStrategies = ["sortGPU", "sortCPU"]
-sortStrategies_ = [true, false]
+sortStrategies_ = [false, true]
 
 
 samples = 100
