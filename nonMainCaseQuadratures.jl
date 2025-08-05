@@ -92,17 +92,17 @@ function nonMainCaseQuadratures!(qd, elementAssemblyData, quadrule_types_gpu, co
             CommonFace_data = SauterSchwabQuadrature_gpu_data{CommonFaceCustomGpuData}()
 
             
-            # SauterSchwab_2!(CommonVertex_data, CommonVertex_data_, sizes[1], SauterSchwabQuadrature.CommonVertex(qd.gausslegendre[1]), elementAssemblyData, biop, store, config, timingInfo)
-            # SauterSchwab_2!(CommonEdge_data, CommonEdge_data_, sizes[2], SauterSchwabQuadrature.CommonEdge(qd.gausslegendre[2]), elementAssemblyData, biop, store, config, timingInfo)
-            # SauterSchwab_2!(CommonFace_data, CommonFace_data_, sizes[3], SauterSchwabQuadrature.CommonFace(qd.gausslegendre[3]), elementAssemblyData, biop, store, config, timingInfo)
+            SauterSchwab_2!(CommonVertex_data, CommonVertex_data_, sizes[1], SauterSchwabQuadrature.CommonVertex(qd.gausslegendre[1]), elementAssemblyData, biop, store, config, timingInfo)
+            SauterSchwab_2!(CommonEdge_data, CommonEdge_data_, sizes[2], SauterSchwabQuadrature.CommonEdge(qd.gausslegendre[2]), elementAssemblyData, biop, store, config, timingInfo)
+            SauterSchwab_2!(CommonFace_data, CommonFace_data_, sizes[3], SauterSchwabQuadrature.CommonFace(qd.gausslegendre[3]), elementAssemblyData, biop, store, config, timingInfo)
 
-            task1 = Threads.@spawn SauterSchwab_2!(CommonVertex_data, CommonVertex_data_, sizes[1], SauterSchwabQuadrature.CommonVertex(qd.gausslegendre[1]), elementAssemblyData, biop, store, config, timingInfo)
-            task2 = Threads.@spawn SauterSchwab_2!(CommonEdge_data, CommonEdge_data_, sizes[2], SauterSchwabQuadrature.CommonEdge(qd.gausslegendre[2]), elementAssemblyData, biop, store, config, timingInfo)
-            task3 = Threads.@spawn SauterSchwab_2!(CommonFace_data, CommonFace_data_, sizes[3], SauterSchwabQuadrature.CommonFace(qd.gausslegendre[3]), elementAssemblyData, biop, store, config, timingInfo)
+            # task1 = Threads.@spawn SauterSchwab_2!(CommonVertex_data, CommonVertex_data_, sizes[1], SauterSchwabQuadrature.CommonVertex(qd.gausslegendre[1]), elementAssemblyData, biop, store, config, timingInfo)
+            # task2 = Threads.@spawn SauterSchwab_2!(CommonEdge_data, CommonEdge_data_, sizes[2], SauterSchwabQuadrature.CommonEdge(qd.gausslegendre[2]), elementAssemblyData, biop, store, config, timingInfo)
+            # task3 = Threads.@spawn SauterSchwab_2!(CommonFace_data, CommonFace_data_, sizes[3], SauterSchwabQuadrature.CommonFace(qd.gausslegendre[3]), elementAssemblyData, biop, store, config, timingInfo)
             
-            wait(task1)
-            wait(task2)
-            wait(task3)
+            # wait(task1)
+            # wait(task2)
+            # wait(task3)
         end
     end
 

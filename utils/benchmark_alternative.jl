@@ -19,12 +19,34 @@ function manual_benchmark(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,f
             println("Breaking early: Benchmark exceeded $(break_time/60) minute.")
             break
         end
-        # GC.gc()  # Optional: collect garbage
-        t_start = time_ns()
-        benchmark_closure()
-        t_end = time_ns()
-        push!(times, (t_end - t_start) / 1e9)  # convert to s
-        i = j
+        attempt = 0
+        while true
+            try
+                GC.gc()
+                t_start = time_ns()
+                benchmark_closure()
+                t_end = time_ns()
+                GC.gc()
+                push!(times, (t_end - t_start) / 1e9)  # convert to s
+                i = j
+                break
+            catch e
+                attempt += 1
+                if isa(e, CUDA.CuError) && e.code == CUDA.cudaErrorHostMemoryAlreadyRegistered
+                    GC.gc()
+                    CUDA.reclaim()
+                elseif isa(e, TaskFailedException)
+                    GC.gc()
+                    CUDA.reclaim()
+                else
+                    @error "Unhandled error in benchmark run" exception=(e, catch_backtrace())
+                end
+
+                if attempt == 50
+                    error("Benchmark failed after $max_retries attempts.")
+                end
+            end
+        end
     end
 
     lock(PRINT_LOCK) do

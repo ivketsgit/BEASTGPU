@@ -425,15 +425,15 @@ function SauterSchwab_2!(SauterSchwabQuadratureCustomGpuData, t, l, qps_,
     trial_assembly_gpu_values = assembly_gpu_data[4]
     
     time_2 = @elapsed begin
-        # task = Threads.@spawn begin
+        task = Threads.@spawn begin
             sauterschwab_parameterized_gpu_outside_loop_kernel!(backend, 256)(result, qps, 
             elements_data..., 
             ichart1_vert, ichart2_vert, ichart1_tan, ichart2_tan, store_index, 
             test_assembly_gpu_indexes, trial_assembly_gpu_indexes, test_assembly_gpu_values, trial_assembly_gpu_values, 
             γ, α, instances, writeBackStrategy, ndrange = (4 * 4 * 4 * 4 * length)) 
             KernelAbstractions.synchronize(backend)
-        # end
-        # wait(task)
+        end
+        wait(task)
     end
 
     

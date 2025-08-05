@@ -28,7 +28,6 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
     # long_delays_policy = LongDelays{:compress},
         quadstrat=BEAST.defaultquadstrat(operator, test_functions, trial_functions))
     
-    GC.gc()
     backend = config.backend
 
     
@@ -159,7 +158,6 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
         log_time(config.timeLogger, "create results as complex numbers", time_make_complex)
     end
 
-    GC.gc()
     return result_cpu
     # return result_complex
 end
