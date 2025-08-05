@@ -23,10 +23,12 @@ function manual_benchmark(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,f
         while true
             try
                 GC.gc()
+                CUDA.reclaim()
                 t_start = time_ns()
                 benchmark_closure()
                 t_end = time_ns()
                 GC.gc()
+                CUDA.reclaim()
                 push!(times, (t_end - t_start) / 1e9)  # convert to s
                 i = j
                 break
@@ -43,7 +45,25 @@ function manual_benchmark(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,f
                 end
 
                 if attempt == 50
-                    error("Benchmark failed after $max_retries attempts.")
+                    lock(PRINT_LOCK) do
+                        open(filename,  appendOrWrite) do file
+                            # println(file, """
+                            # Manual Benchmark of duration $((time() - t0)) over $i runs:
+                            # Min: $(minimum(times)) s
+                            # Mean: $(mean(times)) s
+                            # Max: $(maximum(times)) s
+                            # Std: $(std(times)) s
+                            # 2nd Quartile (Median): $(quantile(times, 0.5)) s
+                            # 3rd Quartile (75th percentile): $(quantile(times, 0.75)) s
+                            # """)
+
+                            println(file, """
+                            Manual Benchmark of duration $((time() - t0)) over $i runs:
+                            $(times)
+                            """)
+                        end
+                    end
+                    error("Benchmark failed after 50 attempts.")
                 end
             end
         end
