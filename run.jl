@@ -74,6 +74,7 @@ filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
 
 let time = @elapsed begin
         M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
+        @show M
 
         
 # using Profile
