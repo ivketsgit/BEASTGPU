@@ -79,75 +79,49 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
     GiB = prod(size(gpu_array)) * sizeof(Float64) / 2^30
     
     if config.makeCompexWithGPU == true
+
+        
         time_make_complex = @elapsed begin
             make_complex(backend)(complex_array, gpu_array, ndrange = (numfunctions(test_functions), numfunctions(trial_functions)))
             KernelAbstractions.synchronize(backend)
         end
         @show time_make_complex
 
-        # time_to_transfer_with_copy = @elapsed begin
-        #     copyto!(result_complex, complex_array)
-        # end
-        # @show time_to_transfer_with_copy
-
         
-        
+        if occursin(r"^data/GPU/\d{2}/make_complex_GPU\.txt$", config.filename_benchmark)
+            f = function()
+                make_complex(backend)(complex_array, gpu_array, ndrange = (numfunctions(test_functions), numfunctions(trial_functions)))
+                KernelAbstractions.synchronize(backend)
+            end
+            manual_benchmark(f, n=100,filename=config.filename_benchmark, appendOrWrite="a")
+        end
         
         time_to_transfer_with_copy = @elapsed begin
-        #     # result_profile = CUDA.@profile trace=true copyto!(result_complex, complex_array)
             chunk_size = Int(ceil(prod(size(result_cpu))/100))
             result_cpu = copy_to_CPU(result_cpu, complex_array, backend, ComplexF64, chunk_size, config)
-
-            # result_cpu = copy_to_CPU(result_cpu, complex_array, backend, ComplexF64, Int(round(1024 * 1024 * 100 * 1.5)), config)
-
-        
-
-            # rows, cols = size(result_cpu)
-            # complex_array_flat = reshape(complex_array, :)  
-            # result_cpu_flat = reshape(result_cpu, :)
-
-            
-            # N = prod(size(result_cpu))
-        #     # for i in 1:chunk_size:N
-        #     #     this_chunk = min(chunk_size, N - i + 1)
-        #     #     copyto!(result_complex_1, 1, complex_array_flat, i, this_chunk)      # GPU -> pinned buffer
-        #     #     copyto!(result_cpu_flat, i, result_complex_1, 1, this_chunk)        # pinned buffer -> final array
-        #     # end
-
-            # channel = Channel{Tuple{Int, Int}}(100)
-            # task = []
-            # for n in 1:nthreads
-            #     t = Threads.@spawn worker(result_cpu_flat, result_complex_array[n], complex_array_flat, channel)
-            #     push!(task, t)
-            # end
-
-            # for i in 1:chunk_size:N
-            #     this_chunk = min(chunk_size, N - i + 1)
-            #     put!(channel, (i, this_chunk))
-            # end
-            # close(channel)
-
-            # for n in 1:nthreads
-            #     wait(task[n])
-            # end
-
-            # result_cpu = reshape(result_cpu_flat, rows, cols)
         end
         @show time_to_transfer_with_copy
         println("GiB/s = ", GiB / time_to_transfer_with_copy)
-
-        
     else
         
         time_to_transfer_with_copy = @elapsed begin
             copyto!(result_cpu, gpu_array)
         end
+        result_cpu_copy = result_cpu
         @show time_to_transfer_with_copy
         println("GiB/s = ", GiB / time_to_transfer_with_copy)
 
         time_make_complex = @elapsed begin
             result_cpu = complex.(view(result_cpu, 1, :, :), view(result_cpu, 2, :, :))
         end
+        
+        if occursin(r"^data/GPU/\d{2}/make_complex_CPU\.txt$", config.filename_benchmark)
+            f = function()
+                result_cpu = complex.(view(result_cpu_copy, 1, :, :), view(result_cpu_copy, 2, :, :))
+            end
+            manual_benchmark(f, n=100,filename=config.filename_benchmark, appendOrWrite="a")
+        end
+
     end
 
     empty!(gpu_results_cache)
