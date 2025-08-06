@@ -4,7 +4,7 @@ using Statistics
 const PRINT_LOCK = ReentrantLock()
 const _warmed_up_functions = Set{UInt64}()
 function manual_benchmark_2(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,filename=nothing,appendOrWrite="a")
-     # Hash the function to identify it uniquely
+    # Hash the function to identify it uniquely
     f_hash = hash(f)
 
     # Only warm up if this function hasn't been warmed up before
@@ -113,8 +113,16 @@ end
     
 
 function manual_benchmark(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,filename=nothing,appendOrWrite="a")
-    # Warm-up to trigger compilation
-    f(args...; kwargs...)
+    # Hash the function to identify it uniquely
+    f_hash = hash(f)
+
+    # Only warm up if this function hasn't been warmed up before
+    if !(f_hash in _warmed_up_functions)
+        f(args...; kwargs...)  # Warm-up to trigger compilation
+        push!(_warmed_up_functions, f_hash)
+    end
+
+    
     # Avoid global lookup by creating closure
     benchmark_closure = () -> f(args...; kwargs...)
 
@@ -127,11 +135,36 @@ function manual_benchmark(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,f
             println("Breaking early: Benchmark exceeded $(break_time/60) minute.")
             break
         end
-        t_start = time_ns()
-        benchmark_closure()
-        t_end = time_ns()
-        push!(times, (t_end - t_start) / 1e9)  # convert to s
-        i = j
+        attempt = 0
+        while true
+            try
+                GC.gc()
+                CUDA.reclaim()
+                t_start = time_ns()
+                benchmark_closure()
+                t_end = time_ns()
+                GC.gc()
+                CUDA.reclaim()
+                push!(times, (t_end - t_start) / 1e9)  # convert to s
+                i = j
+                break
+            catch e
+                attempt += 1
+                if isa(e, CUDA.CuError) && e.code == CUDA.cudaErrorHostMemoryAlreadyRegistered
+                    GC.gc()
+                    CUDA.reclaim()
+                elseif isa(e, TaskFailedException)
+                    GC.gc()
+                    CUDA.reclaim()
+                else
+                    @error "Unhandled error in benchmark run" exception=(e, catch_backtrace())
+                end
+
+                if attempt == 50
+                    error("Benchmark failed after 50 attempts.")
+                end
+            end
+        end
 
     end
 

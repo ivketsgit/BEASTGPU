@@ -110,58 +110,58 @@ function nonMainCaseQuadratures!(qd, elementAssemblyData, quadrule_types_gpu, co
 
 
     
-    if config.filename_benchmark != ""
-        # f = function()
-        #     if config.sortOnCPU == true
-        #         timingInfo.time_transfer_to_CPU += @elapsed begin
-        #             quadrule_types = Array{Int8}(undef, elementAssemblyData.elements_length_tuple)
+    # if config.filename_benchmark != ""
+    #     # f = function()
+    #     #     if config.sortOnCPU == true
+    #     #         timingInfo.time_transfer_to_CPU += @elapsed begin
+    #     #             quadrule_types = Array{Int8}(undef, elementAssemblyData.elements_length_tuple)
                     
-        #             quadrule_types = copy_to_CPU(quadrule_types, quadrule_types_gpu, backend, Int8, Int(round(1024 * 1024 * 100 * 1.5)), config)
-        #         end
-        #         @show timingInfo.time_transfer_to_CPU
+    #     #             quadrule_types = copy_to_CPU(quadrule_types, quadrule_types_gpu, backend, Int8, Int(round(1024 * 1024 * 100 * 1.5)), config)
+    #     #         end
+    #     #         @show timingInfo.time_transfer_to_CPU
 
-        #         timingInfo.time_double_forloop += @elapsed begin  
-        #             CommonVertex_data, CommonEdge_data, CommonFace_data = load_data_into_custom_datastructs(elementAssemblyData, test_elements, trial_elements, quadrule_types, counts)
-        #         end
-        #         @show timingInfo.time_double_forloop
+    #     #         timingInfo.time_double_forloop += @elapsed begin  
+    #     #             CommonVertex_data, CommonEdge_data, CommonFace_data = load_data_into_custom_datastructs(elementAssemblyData, test_elements, trial_elements, quadrule_types, counts)
+    #     #         end
+    #     #         @show timingInfo.time_double_forloop
 
-        #     else
-        #         sizes = Array(sizes)
+    #     #     else
+    #     #         sizes = Array(sizes)
 
-        #         CommonVertex_data_ = KernelAbstractions.allocate(backend, Int64, sizes[1], 2)
-        #         CommonEdge_data_ = KernelAbstractions.allocate(backend, Int64, sizes[2], 2)
-        #         CommonFace_data_ = KernelAbstractions.allocate(backend, Int64, sizes[3], 2)
-
-
-        #         pref_offset = elementAssemblyData.pref_offset
-
-        #         counters = KernelAbstractions.ones(backend, Int64, 3)
-        #         time_sort = @elapsed begin
-        #             sort_data(backend)(CommonVertex_data_, CommonEdge_data_, CommonFace_data_, counters, pref_offset, quadrule_types_gpu, ndrange = elementAssemblyData.elements_length_tuple)
-        #             KernelAbstractions.synchronize(backend)
-        #         end
-        #     end
-        # end
-
-        # manual_benchmark(f, n=300,filename=config.filename_benchmark*".txt", appendOrWrite="a")
+    #     #         CommonVertex_data_ = KernelAbstractions.allocate(backend, Int64, sizes[1], 2)
+    #     #         CommonEdge_data_ = KernelAbstractions.allocate(backend, Int64, sizes[2], 2)
+    #     #         CommonFace_data_ = KernelAbstractions.allocate(backend, Int64, sizes[3], 2)
 
 
-        f = function()
-            timingInfo.time_transfer_to_CPU += @elapsed begin
-                quadrule_types = Array{Int8}(undef, elementAssemblyData.elements_length_tuple)
+    #     #         pref_offset = elementAssemblyData.pref_offset
+
+    #     #         counters = KernelAbstractions.ones(backend, Int64, 3)
+    #     #         time_sort = @elapsed begin
+    #     #             sort_data(backend)(CommonVertex_data_, CommonEdge_data_, CommonFace_data_, counters, pref_offset, quadrule_types_gpu, ndrange = elementAssemblyData.elements_length_tuple)
+    #     #             KernelAbstractions.synchronize(backend)
+    #     #         end
+    #     #     end
+    #     # end
+
+    #     # manual_benchmark(f, n=300,filename=config.filename_benchmark*".txt", appendOrWrite="a")
+
+
+    #     f = function()
+    #         timingInfo.time_transfer_to_CPU += @elapsed begin
+    #             quadrule_types = Array{Int8}(undef, elementAssemblyData.elements_length_tuple)
                 
-                quadrule_types = copy_to_CPU(quadrule_types, quadrule_types_gpu, backend, Int8, Int(round(1024 * 1024 * 100 * 1.5)), config)
-            end
-        end
-        manual_benchmark(f, n=100,filename=config.filename_benchmark*"SortCPU_Copy.txt", appendOrWrite="a")
-        f = function()
-            timingInfo.time_double_forloop += @elapsed begin  
-                CommonVertex_data, CommonEdge_data, CommonFace_data = load_data_into_custom_datastructs(elementAssemblyData, test_elements, trial_elements, quadrule_types, counts)
-            end
-        end
-        manual_benchmark(f, n=100,filename=config.filename_benchmark*"SortCPU_process.txt", appendOrWrite="a")
+    #             quadrule_types = copy_to_CPU(quadrule_types, quadrule_types_gpu, backend, Int8, Int(round(1024 * 1024 * 100 * 1.5)), config)
+    #         end
+    #     end
+    #     manual_benchmark(f, n=100,filename=config.filename_benchmark*"SortCPU_Copy.txt", appendOrWrite="a")
+    #     f = function()
+    #         timingInfo.time_double_forloop += @elapsed begin  
+    #             CommonVertex_data, CommonEdge_data, CommonFace_data = load_data_into_custom_datastructs(elementAssemblyData, test_elements, trial_elements, quadrule_types, counts)
+    #         end
+    #     end
+    #     manual_benchmark(f, n=100,filename=config.filename_benchmark*"SortCPU_process.txt", appendOrWrite="a")
 
-    end
+    # end
     
     # end
     # wait(task)
