@@ -17,7 +17,7 @@ X = lagrangec0d1(Γ)
 S = Helmholtz3D.singlelayer(wavenumber = 1.0)
 
 
-samples = 100
+samples = 20
 for mem in partial_store_mem
     file_name = "data/GPU/pStore_mem/time_mem_$(mem).txt"
     config = GPUConfiguration(

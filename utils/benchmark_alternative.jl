@@ -2,10 +2,16 @@ using Dates
 using Statistics
 
 const PRINT_LOCK = ReentrantLock()
-
+const _warmed_up_functions = Set{UInt64}()
 function manual_benchmark(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,filename=nothing,appendOrWrite="a")
-    # Warm-up to trigger compilation
-    f(args...; kwargs...)
+     # Hash the function to identify it uniquely
+    f_hash = hash(f)
+
+    # Only warm up if this function hasn't been warmed up before
+    if !(f_hash in _warmed_up_functions)
+        f(args...; kwargs...)  # Warm-up to trigger compilation
+        push!(_warmed_up_functions, f_hash)
+    end
 
     # Avoid global lookup by creating closure
     benchmark_closure = () -> f(args...; kwargs...)
@@ -45,50 +51,50 @@ function manual_benchmark(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,f
                 end
 
                 if attempt == 50
-                    lock(PRINT_LOCK) do
-                        open(filename,  appendOrWrite) do file
-                            # println(file, """
-                            # Manual Benchmark of duration $((time() - t0)) over $i runs:
-                            # Min: $(minimum(times)) s
-                            # Mean: $(mean(times)) s
-                            # Max: $(maximum(times)) s
-                            # Std: $(std(times)) s
-                            # 2nd Quartile (Median): $(quantile(times, 0.5)) s
-                            # 3rd Quartile (75th percentile): $(quantile(times, 0.75)) s
-                            # """)
+                    # lock(PRINT_LOCK) do
+                    #     open(filename,  appendOrWrite) do file
+                    #         # println(file, """
+                    #         # Manual Benchmark of duration $((time() - t0)) over $i runs:
+                    #         # Min: $(minimum(times)) s
+                    #         # Mean: $(mean(times)) s
+                    #         # Max: $(maximum(times)) s
+                    #         # Std: $(std(times)) s
+                    #         # 2nd Quartile (Median): $(quantile(times, 0.5)) s
+                    #         # 3rd Quartile (75th percentile): $(quantile(times, 0.75)) s
+                    #         # """)
 
-                            println(file, """
-                            Manual Benchmark of duration $((time() - t0)) over $i runs:
-                            $(times)
-                            """)
-                        end
-                    end
+                    #         println(file, """
+                    #         Manual Benchmark of duration $((time() - t0)) over $i runs:
+                    #         $(times)
+                    #         """)
+                    #     end
+                    # end
                     error("Benchmark failed after 50 attempts.")
                 end
             end
         end
     end
 
-    lock(PRINT_LOCK) do
+    # lock(PRINT_LOCK) do
         
-        open(filename,  appendOrWrite) do file
-            # println(file, """
-            # Manual Benchmark of duration $((time() - t0)) over $i runs:
-            # Min: $(minimum(times)) s
-            # Mean: $(mean(times)) s
-            # Max: $(maximum(times)) s
-            # Std: $(std(times)) s
-            # 2nd Quartile (Median): $(quantile(times, 0.5)) s
-            # 3rd Quartile (75th percentile): $(quantile(times, 0.75)) s
-            # """)
+    #     open(filename,  appendOrWrite) do file
+    #         # println(file, """
+    #         # Manual Benchmark of duration $((time() - t0)) over $i runs:
+    #         # Min: $(minimum(times)) s
+    #         # Mean: $(mean(times)) s
+    #         # Max: $(maximum(times)) s
+    #         # Std: $(std(times)) s
+    #         # 2nd Quartile (Median): $(quantile(times, 0.5)) s
+    #         # 3rd Quartile (75th percentile): $(quantile(times, 0.75)) s
+    #         # """)
 
-            println(file, """
-            Manual Benchmark of duration $((time() - t0)) over $i runs:
-            $(times)
-            """)
-        end
+    #         println(file, """
+    #         Manual Benchmark of duration $((time() - t0)) over $i runs:
+    #         $(times)
+    #         """)
+    #     end
         
-    end
+    # end
 
     
     # println("Manual Benchmark of duration $((time() - t0)) over $i runs:")
