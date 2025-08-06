@@ -3,7 +3,7 @@ using Statistics
 
 const PRINT_LOCK = ReentrantLock()
 const _warmed_up_functions = Set{UInt64}()
-function manual_benchmark(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,filename=nothing,appendOrWrite="a")
+function manual_benchmark_2(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,filename=nothing,appendOrWrite="a")
      # Hash the function to identify it uniquely
     f_hash = hash(f)
 
@@ -108,3 +108,41 @@ function manual_benchmark(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,f
     return times
 end
 
+
+
+    
+
+function manual_benchmark(f; args=(), kwargs=NamedTuple(), n=1000, max_hours=1,filename=nothing,appendOrWrite="a")
+    # Warm-up to trigger compilation
+    f(args...; kwargs...)
+    # Avoid global lookup by creating closure
+    benchmark_closure = () -> f(args...; kwargs...)
+
+    times = Float64[]
+    t0 = time()  # Wall-clock time in seconds
+    i = 1
+    break_time = 60 * 60 * max_hours
+    for j in 1:n
+        if (time() - t0) > break_time && j > 5
+            println("Breaking early: Benchmark exceeded $(break_time/60) minute.")
+            break
+        end
+        t_start = time_ns()
+        benchmark_closure()
+        t_end = time_ns()
+        push!(times, (t_end - t_start) / 1e9)  # convert to s
+        i = j
+
+    end
+
+    lock(PRINT_LOCK) do
+        
+        open(filename,  appendOrWrite) do file
+            println(file, """
+            Manual Benchmark of duration $((time() - t0)) over $i runs:
+            $(times)
+            """)
+        end
+        
+    end
+end

@@ -40,7 +40,7 @@ for mem in partial_store_mem
     f = function()
         assemble_gpu(S,X,X,config,config.writeBackStrategy)
     end
-    manual_benchmark(f, n=samples,filename=file_name, appendOrWrite="a")
+    manual_benchmark_2(f, n=samples,filename=file_name, appendOrWrite="a")
 end
 
 
@@ -67,5 +67,5 @@ for threads in partial_store_threads
     f = function()
         assemble_gpu(S,X,X,config,config.writeBackStrategy)
     end
-    manual_benchmark(f, n=samples,filename=file_name, appendOrWrite="a")
+    manual_benchmark_2(f, n=samples,filename=file_name, appendOrWrite="a")
 end

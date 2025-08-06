@@ -168,6 +168,12 @@ function assemblechunk_body_gpu!(biop,
                         test_elements, trial_elements, counts, biop, store, sizes,
                         timingInfo)
                 # end
+
+                if config.filename_benchmark != ""
+                    manual_benchmark(nonMainCaseQuadratures!; args=(qd, elementAssemblyData, quadrule_types_gpu, config, 
+                        test_elements, trial_elements, counts, biop, store, sizes,
+                        timingInfo), n=100,filename=config.filename_benchmark, appendOrWrite="a")
+                end
                 
                 # @async begin
                     timingInfo.time_double_int += @elapsed begin
