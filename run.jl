@@ -101,8 +101,8 @@ let time = @elapsed begin
         #     assemble_gpu(S, X, X, config, config.writeBackStrategy)
         # end
     end 
-    println("Elapsed time: ", time)
-    println("")
+    # println("Elapsed time: ", time)
+    # println("")
 end
 
 GC.gc()
@@ -123,12 +123,13 @@ print_means(config.timeLogger)
 
 
 
-M_ref = open(filename, "r") do io
-    deserialize(io)
-end
+# M_ref = open(filename, "r") do io
+#     deserialize(io)
+# end
 
-min_M_row = Array{Float64}(undef, size(M)[1])
-@threads for col in 1:size(M)[1]
-    min_M_row[col] = abs.(M_ref[col] .- M[col])
-end
-@show maximum(min_M_row)
+# min_M_row = Array{Float64}(undef, size(M)[1])
+# @threads for col in 1:size(M)[1]
+#     min_M_row[col] = abs.(M_ref[col] .- M[col])
+# end
+# @show maximum(min_M_row)
+nothing

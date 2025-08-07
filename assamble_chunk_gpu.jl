@@ -178,11 +178,11 @@ function assemblechunk_body_gpu!(biop,
                         )  
                     end
                 # end
-                if occursin(r"^data/GPU/\d{2}/should_calc_true\.txt$", config.filename_benchmark) || occursin(r"^data/GPU/\d{2}/should_calc_false\.txt$", config.filename_benchmark)
-                    manual_benchmark(schedule_kernel!; args=(elementAssemblyData,
-                            biop, quadrule_types_gpu, qd, store,
-                            timingInfo, config, config.writeBackStrategy), n=50,filename=config.filename_benchmark, appendOrWrite="a")
-                end
+                # if occursin(r"^data/GPU/\d{2}/should_calc_true\.txt$", config.filename_benchmark) || occursin(r"^data/GPU/\d{2}/should_calc_false\.txt$", config.filename_benchmark)
+                #     manual_benchmark(schedule_kernel!; args=(elementAssemblyData,
+                #             biop, quadrule_types_gpu, qd, store,
+                #             timingInfo, config, config.writeBackStrategy), n=50,filename=config.filename_benchmark, appendOrWrite="a")
+                # end
 
 
                 pref_offset = elementAssemblyData.offset
