@@ -35,8 +35,15 @@ for inv_density_factor in density_values
             "data/GPU/$(inv_density_factor)/should_calc_true.txt",
             nothing
         )
-
-    M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
+    while true
+        try
+            M = assemble_gpu(S, X, X, config, config.writeBackStrategy)
+            break  # Exit loop if successful
+        catch e
+            println("Error occurred: ", e)
+            # Optionally: sleep(1) to pause before retrying
+        end
+end
     GC.gc()
 end
 
@@ -62,8 +69,15 @@ for inv_density_factor in density_values
             "data/GPU/$(inv_density_factor)/should_calc_false.txt",
             nothing
         )
-
-    M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
+    while true
+        try
+            M = assemble_gpu(S, X, X, config, config.writeBackStrategy)
+            break  # Exit loop if successful
+        catch e
+            println("Error occurred: ", e)
+            # Optionally: sleep(1) to pause before retrying
+        end
+    end
     GC.gc()
 end
 
