@@ -77,30 +77,30 @@ function assemblechunk_body_gpu!(biop,
     # times = manual_benchmark(f, n=100,filename= print_file * "/fill.txt",  appendOrWrite=appendOrWrite)
     
 
-    f = function()
-        for (p, tcell) in enumerate(test_elements)
-            for (q, bcell) in enumerate(trial_elements)
-                BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
-            end
-        end
-    end
-
-    
-    times = manual_benchmark(f, n=100,filename= print_file * "/quadrule.txt",  appendOrWrite=appendOrWrite)
-
-
-    
     # f = function()
     #     for (p, tcell) in enumerate(test_elements)
     #         for (q, bcell) in enumerate(trial_elements)
-    #             qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
-    #             BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
+    #             BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
     #         end
     #     end
     # end
 
     
-    # times = manual_benchmark(f, n=100,filename= print_file * "/momintegrals.txt",  appendOrWrite=appendOrWrite)
+    # times = manual_benchmark(f, n=100,filename= print_file * "/quadrule.txt",  appendOrWrite=appendOrWrite)
+
+
+    
+    f = function()
+        for (p, tcell) in enumerate(test_elements)
+            for (q, bcell) in enumerate(trial_elements)
+                qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
+                BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
+            end
+        end
+    end
+
+    
+    times = manual_benchmark(f, n=100,filename= print_file * "/momintegrals.txt",  appendOrWrite=appendOrWrite)
     
     
 

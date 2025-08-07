@@ -4,6 +4,7 @@ using BEAST
 using CompScienceMeshes
 using BenchmarkTools
 using Serialization
+using CUDA
 
 using ImageShow  
 # using Images, ImageView

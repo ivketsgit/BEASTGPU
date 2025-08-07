@@ -85,7 +85,7 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
             make_complex(backend)(complex_array, gpu_array, ndrange = (numfunctions(test_functions), numfunctions(trial_functions)))
             KernelAbstractions.synchronize(backend)
         end
-        @show time_make_complex
+        # @show time_make_complex
 
         
         if occursin(r"^data/GPU/\d{2}/make_complex_GPU\.txt$", config.filename_benchmark)
@@ -100,16 +100,16 @@ function assemble_gpu(operator::BEAST.AbstractOperator, test_functions, trial_fu
             chunk_size = Int(ceil(prod(size(result_cpu))/100))
             result_cpu = copy_to_CPU(result_cpu, complex_array, backend, ComplexF64, chunk_size, config)
         end
-        @show time_to_transfer_with_copy
-        println("GiB/s = ", GiB / time_to_transfer_with_copy)
+        # @show time_to_transfer_with_copy
+        # println("GiB/s = ", GiB / time_to_transfer_with_copy)
     else
         
         time_to_transfer_with_copy = @elapsed begin
             copyto!(result_cpu, gpu_array)
         end
         result_cpu_copy = result_cpu
-        @show time_to_transfer_with_copy
-        println("GiB/s = ", GiB / time_to_transfer_with_copy)
+        # @show time_to_transfer_with_copy
+        # println("GiB/s = ", GiB / time_to_transfer_with_copy)
 
         time_make_complex = @elapsed begin
             result_cpu = complex.(view(result_cpu, 1, :, :), view(result_cpu, 2, :, :))

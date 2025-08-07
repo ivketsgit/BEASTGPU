@@ -44,7 +44,7 @@ config = GPUConfiguration(
     )
 
 
-inv_density_factor = 1
+inv_density_factor = 40
 Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
 # Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor; generator=:gmsh)
 X = lagrangec0d1(Γ) 
@@ -74,7 +74,6 @@ filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
 
 let time = @elapsed begin
         M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
-        @show M
 
         
 # using Profile
@@ -120,7 +119,7 @@ GC.gc()
 
 
 
-# print_means(config.timeLogger)
+print_means(config.timeLogger)
 
 
 

@@ -79,6 +79,8 @@ end
         for i in 1:9
             P[i] = 0.0
         end
+
+        should_calc_ = should_calc_f(γ, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type)
         
         for I in 1:3
             for J in 1:4
@@ -87,7 +89,8 @@ end
                         (womps_cart[K, I, 3] - wimps_cart[L, J, 3])^2 )
                 
 
-                j_αG = calc_j_αG(α, womps_weights[K, I], wimps_weights[L, J], R, γ, T, quadrule_types_gpu, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type)
+                j_αG = calc_j_αG(α, womps_weights[K, I], wimps_weights[L, J], R, γ, T, quadrule_types_gpu, K, L, ShouldCalcInstance, should_calc_)
+
 
                 @unroll for i in 0:2
                     j_αG_womps_values = j_αG * womps_values[K, I, i+1]
@@ -139,25 +142,30 @@ end
 
 const i4pi = 1 / (4pi)
 const epsilon =  eps(Float64)
-@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyOptimistic, quadrule_types_gpu, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatType)
+@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyOptimistic, quadrule_types_gpu, K, L, ShouldCalcInstance, should_calc_)
     return α * womps_weight * wimps_weight * i4pi / R * exp(-R*γ)
 end
-@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyRepaire, quadrule_types_gpu, K, L, ShouldCalcInstance, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatType)
+@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyRepaire, quadrule_types_gpu, K, L, ShouldCalcInstance, should_calc_)
     return - α * womps_weight * wimps_weight * i4pi / R * exp(-R*γ)
 end
-@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyShouldCalculate, quadrule_types_gpu, K, L, ShouldCalcInstance::ShouldCalcTrue, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatType)
+@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyShouldCalculate, quadrule_types_gpu, K, L, ShouldCalcInstance::ShouldCalcTrue, should_calc_)
     # K_offset = K - 1
     
     return α * womps_weight * wimps_weight * i4pi / R * exp(-R*γ) * (quadrule_types_gpu[K, L] == 0)
     # return α * womps_weight * wimps_weight * i4pi / R * exp(-R*γ) * ((should_calc[(K_offset >> 5) + 1, L] >> ((K_offset & 31 ))) & 1)
 end
 
-@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyShouldCalculate, should_calc, K, L, ShouldCalcInstance::ShouldCalcFalse, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type)
-    K_offset = K - 1
-
+@inline function should_calc_f(γ, K, L, ShouldCalcInstance::ShouldCalcFalse, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type)
     abs2_ = abs2(γ)
     should_calc_ = quadrule_determine_if_doubleQuadRule(K, L, abs2_, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type)
-    
+    return should_calc_
+end
+
+@inline function should_calc_f(γ, K, L, ShouldCalcInstance::ShouldCalcTrue, test_elements_vertices_matrix, trial_elements_vertices_matrix, trial_elements_volume_matrix, floatmax_type)
+    return nothing
+end
+
+@inline function calc_j_αG(α, womps_weight, wimps_weight, R, γ, T::doubleQuadRuleGpuStrategyShouldCalculate, quadrule_types_gpu, K, L, ShouldCalcInstance::ShouldCalcFalse, should_calc_)
     return α * womps_weight * wimps_weight * i4pi / R * exp(-R*γ) * should_calc_
 end
 
