@@ -1,0 +1,219 @@
+julia> include("run.jl")
+WARNING: replacing module Strategies.
+WARNING: redefinition of constant Main.PRINT_LOCK. This may fail, cause incorrect answers, or produce other errors.
+WARNING: redefinition of constant Main._warmed_up_functions. This may fail, cause incorrect answers, or produce other errors.
+┌ Info: Generating a structured mesh: The dimensions of the cuboid are 
+│             approximated by multiples of edge length.
+└             For exact dimensions/ unstructured grid, use kwarg - generator = :gmsh
+time_all = 84.428922904
+
+transfer quadrule to CPU     0.0
+time_to_store     0.268562967
+time_table[2,:]     [[106.76804664900015, 0.83410309, 0.896131223, 0.935885097]]
+calculate the double int     78.984452193
+calc_sauter_schwab 3     0.896131223
+time_sauter_schwab_overhead_and_test_toll 3     0.41722766
+time_table[1,:]     [[0.30627471, 0.4182387, 0.41722766, 0.369938383]]
+transfer results to CPU     Any[]
+time overhead     0.118543423
+calculate double for loop     0.0
+time to determin the quadrule     0.757111283
+time_sauter_schwab_overhead_and_test_toll 2     0.4182387
+calculate SauterSchwab     4.293068086
+calc_sauter_schwab 2     0.83410309
+create results as complex numbers     Any[]
+time_sauter_schwab_overhead_and_test_toll 4     0.369938383
+calc_sauter_schwab 4     0.935885097
+
+julia> include("run.jl")
+WARNING: replacing module Strategies.
+WARNING: redefinition of constant Main.PRINT_LOCK. This may fail, cause incorrect answers, or produce other errors.
+WARNING: redefinition of constant Main._warmed_up_functions. This may fail, cause incorrect answers, or produce other errors.
+┌ Info: Generating a structured mesh: The dimensions of the cuboid are 
+│             approximated by multiples of edge length.
+└             For exact dimensions/ unstructured grid, use kwarg - generator = :gmsh
+time_all = 83.227097897
+
+transfer quadrule to CPU     0.0
+time_to_store     0.265099658
+time_table[2,:]     [[94.463049935, 0.860612598, 0.913983727, 0.952000582]]
+calculate the double int     77.738932011
+calc_sauter_schwab 3     0.913983727
+time_sauter_schwab_overhead_and_test_toll 3     0.417634544
+time_table[1,:]     [[0.277843712, 0.428001818, 0.417634544, 0.368415586]]
+transfer results to CPU     Any[]
+time overhead     0.138984111
+calculate double for loop     0.0
+time to determin the quadrule     0.712483063
+time_sauter_schwab_overhead_and_test_toll 2     0.428001818
+calculate SauterSchwab     4.36087528
+calc_sauter_schwab 2     0.860612598
+create results as complex numbers     Any[]
+time_sauter_schwab_overhead_and_test_toll 4     0.368415586
+calc_sauter_schwab 4     0.952000582
+
+julia> include("run.jl")
+WARNING: replacing module Strategies.
+WARNING: redefinition of constant Main.PRINT_LOCK. This may fail, cause incorrect answers, or produce other errors.
+WARNING: redefinition of constant Main._warmed_up_functions. This may fail, cause incorrect answers, or produce other errors.
+┌ Info: Generating a structured mesh: The dimensions of the cuboid are 
+│             approximated by multiples of edge length.
+└             For exact dimensions/ unstructured grid, use kwarg - generator = :gmsh
+^[[A
+time_all = 84.501947554
+
+transfer quadrule to CPU     0.0
+time_to_store     0.23451445799999998
+time_table[2,:]     [[86.26555187399997, 0.855225224, 0.903035235, 0.937790038]]
+calculate the double int     79.125216358
+calc_sauter_schwab 3     0.903035235
+time_sauter_schwab_overhead_and_test_toll 3     0.414770098
+time_table[1,:]     [[0.274036343, 0.412804737, 0.414770098, 0.353788477]]
+transfer results to CPU     Any[]
+time overhead     0.139491613
+calculate double for loop     0.0
+time to determin the quadrule     0.703679633
+time_sauter_schwab_overhead_and_test_toll 2     0.412804737
+calculate SauterSchwab     4.270406803
+calc_sauter_schwab 2     0.855225224
+create results as complex numbers     Any[]
+time_sauter_schwab_overhead_and_test_toll 4     0.353788477
+calc_sauter_schwab 4     0.937790038
+
+julia> include("run.jl")
+WARNING: replacing module Strategies.
+WARNING: redefinition of constant Main.PRINT_LOCK. This may fail, cause incorrect answers, or produce other errors.
+WARNING: redefinition of constant Main._warmed_up_functions. This may fail, cause incorrect answers, or produce other errors.
+┌ Info: Generating a structured mesh: The dimensions of the cuboid are 
+│             approximated by multiples of edge length.
+└             For exact dimensions/ unstructured grid, use kwarg - generator = :gmsh
+^[[A
+time_all = 84.151732854
+
+transfer quadrule to CPU     0.0
+time_to_store     0.258779153
+time_table[2,:]     [[74.03751664999996, 0.850283815, 0.915605535, 0.95597518]]
+calculate the double int     78.748560428
+calc_sauter_schwab 3     0.915605535
+time_sauter_schwab_overhead_and_test_toll 3     0.415831321
+time_table[1,:]     [[0.27216869, 0.415374672, 0.415831321, 0.359925886]]
+transfer results to CPU     Any[]
+time overhead     0.129973331
+calculate double for loop     0.0
+time to determin the quadrule     0.686933342
+time_sauter_schwab_overhead_and_test_toll 2     0.415374672
+calculate SauterSchwab     4.322178406
+calc_sauter_schwab 2     0.850283815
+create results as complex numbers     Any[]
+time_sauter_schwab_overhead_and_test_toll 4     0.359925886
+calc_sauter_schwab 4     0.95597518
+
+julia> include("run.jl")
+WARNING: replacing module Strategies.
+WARNING: redefinition of constant Main.PRINT_LOCK. This may fail, cause incorrect answers, or produce other errors.
+WARNING: redefinition of constant Main._warmed_up_functions. This may fail, cause incorrect answers, or produce other errors.
+┌ Info: Generating a structured mesh: The dimensions of the cuboid are 
+│             approximated by multiples of edge length.
+└             For exact dimensions/ unstructured grid, use kwarg - generator = :gmsh
+time_all = 85.110277346
+
+transfer quadrule to CPU     0.0
+time_to_store     0.258595215
+time_table[2,:]     [[107.50999249000007, 0.836558759, 0.90547588, 0.945089943]]
+calculate the double int     79.740425881
+calc_sauter_schwab 3     0.90547588
+time_sauter_schwab_overhead_and_test_toll 3     0.409293444
+time_table[1,:]     [[0.26778194, 0.414015007, 0.409293444, 0.37018958]]
+transfer results to CPU     Any[]
+time overhead     0.126306275
+calculate double for loop     0.0
+time to determin the quadrule     0.690453892
+time_sauter_schwab_overhead_and_test_toll 2     0.414015007
+calculate SauterSchwab     4.291192161
+calc_sauter_schwab 2     0.836558759
+create results as complex numbers     Any[]
+time_sauter_schwab_overhead_and_test_toll 4     0.37018958
+calc_sauter_schwab 4     0.945089943
+
+julia> include("run.jl")
+WARNING: replacing module Strategies.
+WARNING: redefinition of constant Main.PRINT_LOCK. This may fail, cause incorrect answers, or produce other errors.
+WARNING: redefinition of constant Main._warmed_up_functions. This may fail, cause incorrect answers, or produce other errors.
+┌ Info: Generating a structured mesh: The dimensions of the cuboid are 
+│             approximated by multiples of edge length.
+└             For exact dimensions/ unstructured grid, use kwarg - generator = :gmsh
+time_all = 84.937810615
+
+transfer quadrule to CPU     0.0
+time_to_store     0.252177084
+time_table[2,:]     [[91.17291986099994, 0.845740772, 0.926412978, 0.943128328]]
+calculate the double int     79.560962289
+calc_sauter_schwab 3     0.926412978
+time_sauter_schwab_overhead_and_test_toll 3     0.40450803
+time_table[1,:]     [[0.257310037, 0.40204005, 0.40450803, 0.369428271]]
+transfer results to CPU     Any[]
+time overhead     0.126985242
+calculate double for loop     0.0
+time to determin the quadrule     0.674213535
+time_sauter_schwab_overhead_and_test_toll 2     0.40204005
+calculate SauterSchwab     4.302682233
+calc_sauter_schwab 2     0.845740772
+create results as complex numbers     Any[]
+time_sauter_schwab_overhead_and_test_toll 4     0.369428271
+calc_sauter_schwab 4     0.943128328
+
+julia> include("run.jl")
+WARNING: replacing module Strategies.
+WARNING: redefinition of constant Main.PRINT_LOCK. This may fail, cause incorrect answers, or produce other errors.
+WARNING: redefinition of constant Main._warmed_up_functions. This may fail, cause incorrect answers, or produce other errors.
+┌ Info: Generating a structured mesh: The dimensions of the cuboid are 
+│             approximated by multiples of edge length.
+└             For exact dimensions/ unstructured grid, use kwarg - generator = :gmsh
+time_all = 86.104517856
+
+transfer quadrule to CPU     0.0
+time_to_store     0.282666186
+time_table[2,:]     [[96.494656824, 0.836391212, 0.911603044, 1.039038305]]
+calculate the double int     80.659419094
+calc_sauter_schwab 3     0.911603044
+time_sauter_schwab_overhead_and_test_toll 3     0.407838286
+time_table[1,:]     [[0.274953132, 0.413026399, 0.407838286, 0.356884517]]
+transfer results to CPU     Any[]
+time overhead     0.119539446
+calculate double for loop     0.0
+time to determin the quadrule     0.664532518
+time_sauter_schwab_overhead_and_test_toll 2     0.413026399
+calculate SauterSchwab     4.397552402
+calc_sauter_schwab 2     0.836391212
+create results as complex numbers     Any[]
+time_sauter_schwab_overhead_and_test_toll 4     0.356884517
+calc_sauter_schwab 4     1.039038305
+
+julia> include("run.jl")
+WARNING: replacing module Strategies.
+WARNING: redefinition of constant Main.PRINT_LOCK. This may fail, cause incorrect answers, or produce other errors.
+WARNING: redefinition of constant Main._warmed_up_functions. This may fail, cause incorrect answers, or produce other errors.
+┌ Info: Generating a structured mesh: The dimensions of the cuboid are 
+│             approximated by multiples of edge length.
+└             For exact dimensions/ unstructured grid, use kwarg - generator = :gmsh
+time_all = 84.928325723
+
+transfer quadrule to CPU     0.0
+time_to_store     0.280035672
+time_table[2,:]     [[91.55572868399992, 0.820671163, 0.890979852, 0.933632324]]
+calculate the double int     79.652504282
+calc_sauter_schwab 3     0.890979852
+time_sauter_schwab_overhead_and_test_toll 3     0.398670806
+time_table[1,:]     [[0.261142771, 0.392740392, 0.398670806, 0.353405831]]
+transfer results to CPU     Any[]
+time overhead     0.123246536
+calculate double for loop     0.0
+time to determin the quadrule     0.667684081
+time_sauter_schwab_overhead_and_test_toll 2     0.392740392
+calculate SauterSchwab     4.217145899
+calc_sauter_schwab 2     0.820671163
+create results as complex numbers     Any[]
+time_sauter_schwab_overhead_and_test_toll 4     0.353405831
+calc_sauter_schwab 4     0.933632324
+
+julia> 
