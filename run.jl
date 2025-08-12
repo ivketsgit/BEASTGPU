@@ -127,9 +127,9 @@ GC.gc()
 #     deserialize(io)
 # end
 
-min_M_row = Array{Float64}(undef, size(M)[1])
+max_M_row = Array{Float64}(undef, size(M)[1])
 @threads for col in 1:size(M)[1]
-    min_M_row[col] = abs.(M_ref[col] .- M[col])
+    max_M_row[col] = abs.(M_ref[col] .- M[col])
 end
-@show maximum(min_M_row)
+@show maximum(max_M_row)
 nothing
