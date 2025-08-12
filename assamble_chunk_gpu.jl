@@ -191,6 +191,6 @@ function assemblechunk_body_gpu!(biop,
 
         log_to_config(config, timingInfo)
     end
-    @show time_all
-    print("\n")
+    # @show time_all
+    # print("\n")
 end
