@@ -88,19 +88,42 @@ function assemblechunk_body_gpu!(biop,
     
     # times = manual_benchmark(f, n=100,filename= print_file * "/quadrule.txt",  appendOrWrite=appendOrWrite)
 
-
     
     f = function()
         for (p, tcell) in enumerate(test_elements)
             for (q, bcell) in enumerate(trial_elements)
                 qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
-                BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
+                if  typeof(qrule) ==  SauterSchwabQuadrature.CommonVertex{Vector{Tuple{Float64, Float64}}}
+                    BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
+                end
             end
         end
     end
-
+    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_1.txt", max_hours=0.1,  appendOrWrite=appendOrWrite)
     
-    times = manual_benchmark(f, n=100,filename= print_file * "/momintegrals.txt",  appendOrWrite=appendOrWrite)
+    f = function()
+        for (p, tcell) in enumerate(test_elements)
+            for (q, bcell) in enumerate(trial_elements)
+                qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
+                if  typeof(qrule) ==  SauterSchwabQuadrature.CommonEdge{Vector{Tuple{Float64, Float64}}}
+                    BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
+                end
+            end
+        end
+    end
+    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_2.txt", max_hours=0.1,  appendOrWrite=appendOrWrite)
+    
+    f = function()
+        for (p, tcell) in enumerate(test_elements)
+            for (q, bcell) in enumerate(trial_elements)
+                qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
+                if  typeof(qrule) ==  SauterSchwabQuadrature.CommonFace{Vector{Tuple{Float64, Float64}}}
+                    BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
+                end
+            end
+        end
+    end
+    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_3.txt", max_hours=0.1, appendOrWrite=appendOrWrite)
     
     
 
