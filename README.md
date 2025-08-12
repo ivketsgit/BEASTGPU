@@ -17,7 +17,7 @@ export JULIA_NUM_THREADS=8
 
 # On Windows PowerShell:
 ```bash
-# $env:JULIA_NUM_THREADS = 8
+$env:JULIA_NUM_THREADS = 8
 ```
 
 # 2. Start Julia
