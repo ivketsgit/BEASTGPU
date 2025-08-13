@@ -94,12 +94,16 @@ for inv_density_factor in density_values
         
         sleep(1)
         GC.gc()
+        # break
     end
+
+    # @show print_means(config.timeLogger)
+    # break
     t_1 = [[x[] for x in row] for row in config.timeLogger.logger["time_table[1,:]"]]
     t_2 = [[x[] for x in row] for row in config.timeLogger.logger["time_table[2,:]"]]
     a = [[],[],[],[]]
     b = [[],[],[],[]]
-    for (i, j) in zip(t_1, t_2)
+    for (i, j) in zip(t_1[2:end], t_2[2:end])
         for k in 1:4
             a[k] = vcat(a[k], i[k])
             b[k] = vcat(b[k], j[k])
