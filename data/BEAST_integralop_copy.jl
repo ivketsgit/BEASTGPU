@@ -99,7 +99,7 @@ function assemblechunk_body_gpu!(biop,
             end
         end
     end
-    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_1.txt", max_hours=0.1,  appendOrWrite=appendOrWrite)
+    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_1.txt", max_hours=0.2,  appendOrWrite=appendOrWrite)
     
     f = function()
         for (p, tcell) in enumerate(test_elements)
@@ -111,7 +111,7 @@ function assemblechunk_body_gpu!(biop,
             end
         end
     end
-    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_2.txt", max_hours=0.1,  appendOrWrite=appendOrWrite)
+    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_2.txt", max_hours=0.2,  appendOrWrite=appendOrWrite)
     
     f = function()
         for (p, tcell) in enumerate(test_elements)
@@ -123,7 +123,7 @@ function assemblechunk_body_gpu!(biop,
             end
         end
     end
-    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_3.txt", max_hours=0.1, appendOrWrite=appendOrWrite)
+    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_3.txt", max_hours=0.2, appendOrWrite=appendOrWrite)
     
     
 
