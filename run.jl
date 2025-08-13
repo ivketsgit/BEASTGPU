@@ -43,13 +43,83 @@ config = GPUConfiguration(
         nothing
     )
 
+include("data/graph_data.jl")
+# inv_density_factor = 1
 
-inv_density_factor = 1
-Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
-# Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor; generator=:gmsh)
+Γ = meshcuboid(1.0,1.0,1.0,0.5/1)
 X = lagrangec0d1(Γ) 
 S = Helmholtz3D.singlelayer(wavenumber = 1.0)
-filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
+M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
+
+for inv_density_factor in density_values
+    Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor)
+    # Γ = meshcuboid(1.0,1.0,1.0,0.5/inv_density_factor; generator=:gmsh)
+    X = lagrangec0d1(Γ) 
+    S = Helmholtz3D.singlelayer(wavenumber = 1.0)
+    # filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
+
+    config = GPUConfiguration(
+        GpuWriteBackTrueInstance(),
+        1,
+        3 * GiB,
+        doubleQuadRuleGpuStrategyShouldCalculateInstance(),
+        ShouldCalcTrueInstance(),
+        24 * GiB,
+        16,
+        true,
+        CUDABackend(),
+        TimeLogger(),
+        Float64,
+        false,
+        "",
+        nothing
+    )
+    
+    println("Processing inv_density_factor: ", inv_density_factor)
+    # a_1 = []
+    # a_2 = []
+    for _ in 1:10
+        M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
+        # ajoft = mean(vcat(config.timeLogger.logger["time_table[1,:]"]...))
+        # @show ajoft
+        # @show config.timeLogger.logger["time_table[1,:]"]
+        # for e in ajoft
+        #     println("Time for first table: ", e[1])
+        #     println("Time for first table: ", e[2])
+        #     println("Time for first table: ", e[3])
+        # end
+        # push!(a_1, config.timeLogger.logger["time_table[1,:]"])
+        # push!(a_2, config.timeLogger.logger["time_table[2,:]"])
+        GC.gc()
+        
+        sleep(1)
+        GC.gc()
+    end
+    t_1 = [[x[] for x in row] for row in config.timeLogger.logger["time_table[1,:]"]]
+    t_2 = [[x[] for x in row] for row in config.timeLogger.logger["time_table[2,:]"]]
+    a = [[],[],[],[]]
+    b = [[],[],[],[]]
+    for (i, j) in zip(t_1, t_2)
+        for k in 1:4
+            a[k] = vcat(a[k], i[k])
+            b[k] = vcat(b[k], j[k])
+        end
+    end
+    c = [0.0,0.0,0.0,0.0]
+    d = [0.0,0.0,0.0,0.0]
+    c_std = [0.0, 0.0, 0.0, 0.0] 
+    d_std = [0.0, 0.0, 0.0, 0.0] 
+    for k in 1:4
+        c[k] = mean(a[k])
+        d[k] = mean(b[k])
+        c_std[k] = std(a[k])
+        d_std[k] = std(b[k])
+    end
+    @show c
+    @show d
+    @show c_std
+    @show d_std
+end
 
 
 
@@ -60,7 +130,7 @@ filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
 
 # let time = @elapsed begin
    # @show @which assemble(S,X,X)
-       M_ref = BEAST.assemble(S,X,X)
+    #    M_ref = BEAST.assemble(S,X,X)
 #    end
 #    open(filename, "w") do io
 #        serialize(io, M_ref)
@@ -72,8 +142,8 @@ filename = "cashed_results/matrix_ref_$inv_density_factor.bin"
 # Profile.clear(); 
 # assemble_gpu(S,X,X,config,config.writeBackStrategy)
 
-let time = @elapsed begin
-        M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
+# let time = @elapsed begin
+        # M = assemble_gpu(S,X,X,config,config.writeBackStrategy)
 
         
 # using Profile
@@ -100,12 +170,12 @@ let time = @elapsed begin
         # @profile for _ in 1:1000
         #     assemble_gpu(S, X, X, config, config.writeBackStrategy)
         # end
-    end 
+    # end 
     # println("Elapsed time: ", time)
     # println("")
-end
+# end
 
-GC.gc()
+# GC.gc()
 # Profile.print()     
 # g = flamegraph()
 # g = flamegraph(C=true)
@@ -127,9 +197,9 @@ GC.gc()
 #     deserialize(io)
 # end
 
-max_M_row = Array{Float64}(undef, size(M)[1])
-@threads for col in 1:size(M)[1]
-    max_M_row[col] = abs.(M_ref[col] .- M[col])
-end
-@show maximum(max_M_row)
+# max_M_row = Array{Float64}(undef, size(M)[1])
+# @threads for col in 1:size(M)[1]
+#     max_M_row[col] = abs.(M_ref[col] .- M[col])
+# end
+# @show maximum(max_M_row)
 nothing

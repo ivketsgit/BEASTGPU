@@ -7,6 +7,9 @@ abstract type MaxwellOperator3D{T,K} <: IntegralOperator end
 abstract type Helmholtz3DOp{T,K} <: MaxwellOperator3D{T,K} end
 # abstract type Helmholtz3DOp{T,K} <: BEAST.MaxwellOperator3D{T,K} end
 
+using SauterSchwabQuadrature
+    
+const    PRINT_LOCK = ReentrantLock()
 
 struct HH3DSingleLayerFDBIO{T,K} <: Helmholtz3DOp{T,K}
     alpha::T
@@ -88,42 +91,82 @@ function assemblechunk_body_gpu!(biop,
     
     # times = manual_benchmark(f, n=100,filename= print_file * "/quadrule.txt",  appendOrWrite=appendOrWrite)
 
-    
-    f = function()
-        for (p, tcell) in enumerate(test_elements)
-            for (q, bcell) in enumerate(trial_elements)
-                qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
-                if  typeof(qrule) ==  SauterSchwabQuadrature.CommonVertex{Vector{Tuple{Float64, Float64}}}
-                    BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
-                end
+    times = [0.0,0.0,0.0,0.0]
+    for (p, tcell) in enumerate(test_elements)
+        for (q, bcell) in enumerate(trial_elements)
+            qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
+            index = 0
+            if  typeof(qrule) ==  SauterSchwabQuadrature.CommonVertex{Vector{Tuple{Float64, Float64}}}
+                index = 2
+            elseif  typeof(qrule) ==  SauterSchwabQuadrature.CommonEdge{Vector{Tuple{Float64, Float64}}}
+                index = 3
+            elseif  typeof(qrule) ==  SauterSchwabQuadrature.CommonFace{Vector{Tuple{Float64, Float64}}}
+                index = 4
+            else
+                index = 1
             end
+            time_ = @elapsed begin
+                BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
+            end
+            times[index] += time_
+            # BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
         end
     end
-    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_1.txt", max_hours=0.2,  appendOrWrite=appendOrWrite)
-    
-    f = function()
-        for (p, tcell) in enumerate(test_elements)
-            for (q, bcell) in enumerate(trial_elements)
-                qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
-                if  typeof(qrule) ==  SauterSchwabQuadrature.CommonEdge{Vector{Tuple{Float64, Float64}}}
-                    BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
-                end
-            end
+    # println(times)  
+    lock(PRINT_LOCK) do
+        
+        open(print_file * "/momintegrals_main.txt",  appendOrWrite) do file
+            print(file,times[1])
+            print(file,",")
+        end
+        open(print_file * "/momintegrals_non_main_V.txt",  appendOrWrite) do file
+            print(file,times[2])
+            print(file,",")
+        end
+        open(print_file * "/momintegrals_non_main_E.txt",  appendOrWrite) do file
+            print(file,times[3])
+            print(file,",")
+        end
+        open(print_file * "/momintegrals_non_main_F.txt",  appendOrWrite) do file
+            print(file,times[4])
+            print(file,",")
         end
     end
-    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_2.txt", max_hours=0.2,  appendOrWrite=appendOrWrite)
+    # f = function()
+    #     for (p, tcell) in enumerate(test_elements)
+    #         for (q, bcell) in enumerate(trial_elements)
+    #             qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
+    #             if  typeof(qrule) ==  SauterSchwabQuadrature.CommonVertex{Vector{Tuple{Float64, Float64}}}
+    #                 BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
+    #             end
+    #         end
+    #     end
+    # end
+    # times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_1.txt", max_hours=0.2,  appendOrWrite=appendOrWrite)
     
-    f = function()
-        for (p, tcell) in enumerate(test_elements)
-            for (q, bcell) in enumerate(trial_elements)
-                qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
-                if  typeof(qrule) ==  SauterSchwabQuadrature.CommonFace{Vector{Tuple{Float64, Float64}}}
-                    BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
-                end
-            end
-        end
-    end
-    times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_3.txt", max_hours=0.2, appendOrWrite=appendOrWrite)
+    # f = function()
+    #     for (p, tcell) in enumerate(test_elements)
+    #         for (q, bcell) in enumerate(trial_elements)
+    #             qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
+    #             if  typeof(qrule) ==  SauterSchwabQuadrature.CommonEdge{Vector{Tuple{Float64, Float64}}}
+    #                 BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
+    #             end
+    #         end
+    #     end
+    # end
+    # times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_2.txt", max_hours=0.2,  appendOrWrite=appendOrWrite)
+    
+    # f = function()
+    #     for (p, tcell) in enumerate(test_elements)
+    #         for (q, bcell) in enumerate(trial_elements)
+    #             qrule = BEAST.quadrule(biop, test_space, trial_space, p, tcell, q, bcell, qd, quadstrat)
+    #             if  typeof(qrule) ==  SauterSchwabQuadrature.CommonFace{Vector{Tuple{Float64, Float64}}}
+    #                 BEAST.momintegrals!(biop, test_shapes, trial_shapes, tcell, bcell, zlocal, qrule)
+    #             end
+    #         end
+    #     end
+    # end
+    # times = manual_benchmark(f, n=10,filename= print_file * "/momintegrals_non_main_3.txt", max_hours=0.2, appendOrWrite=appendOrWrite)
     
     
 
