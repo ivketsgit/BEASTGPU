@@ -195,6 +195,61 @@ def load_cpu_stats_from_files(path, density_values, filename_suffix):
     )
 
 
+def read_benchmark_file_multi_sautswab(content: str) -> List[float]:
+    # Remove whitespace and trailing commas
+    content = content.strip().rstrip(',')
+
+    if not content:
+        raise ValueError("File is empty or contains no numbers.")
+
+    try:
+        # Split by commas and convert to floats
+        return [float(x) for x in content.split(',') if x.strip()]
+    except ValueError as e:
+        raise ValueError(f"Invalid number found in file: {e}")
+
+
+
+
+
+def load_cpu_stats_from_files_sautswab(path, density_values, filename_suffix):
+    median_values = []
+    min_values = []
+    max_values = []
+    std_values = []
+    avg_worst_mean = []
+
+    for density_value in density_values:
+        file_path = merge_paths("BEASTGPU/data", path, str(density_value), filename_suffix)
+        with open(file_path, "r") as f:
+            content = f.read()
+
+        times = np.array(read_benchmark_file_multi_sautswab(content))
+        # print(times)
+        chunk_means = [
+            np.mean(times[i:i+16])
+            for i in range(0, len(times), 16)
+        ]
+        
+        avg_worst_mean.append(max(chunk_means))
+
+        median_values.append(np.median(times))
+        # print(median_values)
+        min_values.append(np.min(times))
+        max_values.append(np.max(times))
+        std_values.append(np.std(times))
+        # print("\n")
+
+    return (
+        np.array(median_values), 
+        np.array(min_values), 
+        np.array(max_values), 
+        np.array(std_values),
+        np.array(avg_worst_mean)
+    )
+
+
+
 def load_cpu_stats_from_files_pînned(path, density_values):
     median_values = []
     min_values = []
